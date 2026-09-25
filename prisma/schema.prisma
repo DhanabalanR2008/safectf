@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum AccountStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum AttendanceStatus {
+  ATTENDING
+  MAYBE
+  NOT_ATTENDING
+  NO_RESPONSE
+}
+
+enum CtfSource {
+  UNSTOP
+  CTFTIME
+  MANUAL
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  role         Role          @default(MEMBER)
+  status       AccountStatus @default(ACTIVE)
+  memberId     String?       @unique
+  member       Member?       @relation(fields: [memberId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  createdCtfs  Ctf[]         @relation("CtfCreator")
+
+  @@index([email])
+  @@index([memberId])
+}
+
+model Member {
+  id           String       @id @default(cuid())
+  memberNumber Int          @unique
+  name         String
+  email        String?      @unique
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  user         User?
+  attendance   Attendance[]
+}
+
+model Ctf {
+  id                   String       @id @default(cuid())
+  name                 String
+  source               CtfSource    @default(MANUAL)
+  sourceUrl            String?
+  ctfUrl               String?
+  startAt              DateTime
+  endAt                DateTime
+  registrationDeadline DateTime?
+  teamSize             Int?
+  description          String?
+  createdByUserId      String
+  createdBy            User         @relation("CtfCreator", fields: [createdByUserId], references: [id])
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  attendance           Attendance[]
+  reminderSentAt       DateTime?
+
+  @@index([startAt])
+  @@index([createdByUserId])
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  ctfId     String
+  memberId  String
+  status    AttendanceStatus @default(NO_RESPONSE)
+  updatedAt DateTime         @updatedAt
+  ctf       Ctf              @relation(fields: [ctfId], references: [id], onDelete: Cascade)
+  member    Member           @relation(fields: [memberId], references: [id])
+
+  @@unique([ctfId, memberId])
+  @@index([ctfId])
+  @@index([memberId])
+}
