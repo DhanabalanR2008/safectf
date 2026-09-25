@@ -1,21 +1,30 @@
-import { auth } from '@/lib/auth'
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export default auth((req) => {
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
-  const session = req.auth
 
-  // Public paths that don't require auth
-  const publicPaths = ['/login', '/api/auth', '/api/init-db', '/api/test-auth']
-  const isPublic = publicPaths.some((p) => pathname.startsWith(p))
-
-  // Redirect authenticated users away from login
-  if (session && pathname === '/login') {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+  // 1. Always allow public and auth routes
+  if (
+    pathname === '/login' ||
+    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/init-db') ||
+    pathname.startsWith('/api/test-auth') ||
+    pathname.startsWith('/_next') ||
+    pathname === '/favicon.ico'
+  ) {
+    return NextResponse.next()
   }
 
-  // Redirect unauthenticated users to login
-  if (!session && !isPublic) {
+  // 2. Check for session token
+  const sessionCookie =
+    req.cookies.get('safectf-session') ||
+    req.cookies.get('__Secure-safectf-session') ||
+    req.cookies.get('authjs.session-token') ||
+    req.cookies.get('__Secure-authjs.session-token')
+
+  // 3. If unauthenticated, redirect to /login
+  if (!sessionCookie) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -24,19 +33,8 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Admin-only route protection - server enforced
-  const isAdminRoute =
-    pathname.startsWith('/admin') || pathname.startsWith('/api/admin')
-
-  if (isAdminRoute && session?.user?.role !== 'ADMIN') {
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-    return NextResponse.redirect(new URL('/dashboard', req.url))
-  }
-
   return NextResponse.next()
-})
+}
 
 export const config = {
   matcher: [
