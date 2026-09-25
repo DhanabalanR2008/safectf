@@ -31,12 +31,12 @@ export function Sidebar({ role, memberName, memberNumber, email }: SidebarProps)
   ]
 
   return (
-    <aside className="hidden md:flex flex-col w-64 bg-slate-900 border-r border-slate-800 min-h-screen sticky top-0">
+    <aside className="hidden md:flex flex-col w-64 bg-slate-900 border-r border-slate-800 min-h-screen sticky top-0 shrink-0">
       <div className="p-5 border-b border-slate-800">
-        <div className="flex items-center gap-2">
+        <Link href="/dashboard" prefetch={true} className="flex items-center gap-2">
           <Shield className="w-6 h-6 text-cyan-400" />
           <span className="text-lg font-bold text-white">SafeCTF</span>
-        </div>
+        </Link>
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
@@ -47,7 +47,8 @@ export function Sidebar({ role, memberName, memberNumber, email }: SidebarProps)
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              prefetch={true}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                 isActive
                   ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
                   : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
@@ -62,7 +63,8 @@ export function Sidebar({ role, memberName, memberNumber, email }: SidebarProps)
         {role === 'ADMIN' && (
           <Link
             href="/admin"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            prefetch={true}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
               pathname.startsWith('/admin')
                 ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                 : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'

@@ -24,11 +24,11 @@ export function MobileNav({ role, memberName }: MobileNavProps) {
 
   return (
     <>
-      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800">
-        <div className="flex items-center gap-2">
+      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
+        <Link href="/dashboard" prefetch={true} className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-cyan-400" />
           <span className="font-bold text-white">SafeCTF</span>
-        </div>
+        </Link>
         <button onClick={() => setOpen(!open)} className="p-2 rounded-lg text-slate-400 hover:bg-slate-800">
           {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -41,28 +41,39 @@ export function MobileNav({ role, memberName }: MobileNavProps) {
             {navItems.map((item) => {
               const Icon = item.icon
               return (
-                <Link key={item.href} href={item.href} onClick={() => setOpen(false)}
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  prefetch={true}
+                  onClick={() => setOpen(false)}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium ${
                     pathname === item.href ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-400 hover:bg-slate-800'
-                  }`}>
+                  }`}
+                >
                   <Icon className="w-4 h-4" />
                   {item.label}
                 </Link>
               )
             })}
             {role === 'ADMIN' && (
-              <Link href="/admin" onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
+              <Link
+                href="/admin"
+                prefetch={true}
+                onClick={() => setOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium ${
                   pathname.startsWith('/admin') ? 'bg-purple-500/10 text-purple-400' : 'text-slate-400 hover:bg-slate-800'
-                }`}>
+                }`}
+              >
                 <Settings className="w-4 h-4" />
                 Admin Panel
               </Link>
             )}
             <div className="mt-auto pt-4 border-t border-slate-800">
               <p className="text-sm font-medium text-slate-300 mb-2">{memberName}</p>
-              <button onClick={() => signOut({ callbackUrl: '/login' })}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-slate-800">
+              <button
+                onClick={() => signOut({ callbackUrl: '/login' })}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-slate-800"
+              >
                 <LogOut className="w-4 h-4" />
                 Sign out
               </button>

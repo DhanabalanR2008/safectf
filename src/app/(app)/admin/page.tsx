@@ -13,20 +13,22 @@ export default async function AdminPage() {
     redirect('/dashboard')
   }
 
-  const members = await db.member.findMany({
-    orderBy: { memberNumber: 'asc' },
-    include: {
-      user: { select: { email: true, role: true, status: true, createdAt: true } },
-    },
-  })
-
-  const ctfs = await db.ctf.findMany({
-    orderBy: { startAt: 'desc' },
-    include: {
-      createdBy: { include: { member: { select: { name: true } } } },
-      attendance: true,
-    },
-  })
+  // Run queries in parallel for instant response time
+  const [members, ctfs] = await Promise.all([
+    db.member.findMany({
+      orderBy: { memberNumber: 'asc' },
+      include: {
+        user: { select: { email: true, role: true, status: true, createdAt: true } },
+      },
+    }),
+    db.ctf.findMany({
+      orderBy: { startAt: 'desc' },
+      include: {
+        createdBy: { include: { member: { select: { name: true } } } },
+        attendance: true,
+      },
+    }),
+  ])
 
   return (
     <div className="space-y-8">
@@ -47,6 +49,7 @@ export default async function AdminPage() {
           </div>
           <Link
             href="/admin/members/new"
+            prefetch={true}
             className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-500/15 text-purple-400 border border-purple-500/30 rounded-lg text-sm hover:bg-purple-500/25 transition-colors"
           >
             + Add Member
@@ -74,6 +77,7 @@ export default async function AdminPage() {
                 </Badge>
                 <Link
                   href={`/admin/members/${member.id}`}
+                  prefetch={true}
                   className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
                 >
                   Edit <ChevronRight className="w-3 h-3" />
@@ -86,7 +90,7 @@ export default async function AdminPage() {
             <Card>
               <p className="text-slate-400 text-sm text-center py-4">
                 No members yet.{' '}
-                <Link href="/admin/members/new" className="text-purple-400 hover:underline">Add the first member.</Link>
+                <Link href="/admin/members/new" prefetch={true} className="text-purple-400 hover:underline">Add the first member.</Link>
               </p>
             </Card>
           )}

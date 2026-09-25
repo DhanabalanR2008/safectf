@@ -9,23 +9,26 @@ export default async function MembersPage() {
   const session = await auth()
   if (!session) redirect('/login')
 
-  const members = await db.member.findMany({
-    orderBy: { memberNumber: 'asc' },
-    include: {
-      user: { select: { status: true } },
-    },
-  })
+  const now = new Date()
 
-  // Get next upcoming CTF for attendance context
-  const nextCtf = await db.ctf.findFirst({
-    where: { startAt: { gte: new Date() } },
-    orderBy: { startAt: 'asc' },
-    include: {
-      attendance: {
-        include: { member: { select: { name: true, memberNumber: true } } },
+  // Parallel database execution
+  const [members, nextCtf] = await Promise.all([
+    db.member.findMany({
+      orderBy: { memberNumber: 'asc' },
+      include: {
+        user: { select: { status: true } },
       },
-    },
-  })
+    }),
+    db.ctf.findFirst({
+      where: { startAt: { gte: now } },
+      orderBy: { startAt: 'asc' },
+      include: {
+        attendance: {
+          include: { member: { select: { name: true, memberNumber: true } } },
+        },
+      },
+    }),
+  ])
 
   const attendingCount = nextCtf
     ? nextCtf.attendance.filter((a) => a.status === 'ATTENDING').length
