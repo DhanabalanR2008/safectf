@@ -168,15 +168,20 @@ export function MemberEditForm({
               placeholder={isNew ? 'Minimum 8 characters' : 'Enter new password'}
               required={isNew}
               minLength={8}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 pr-10 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 pr-11 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-400 transition-colors p-1 cursor-pointer focus:outline-none"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
+              title={showPassword ? 'Hide password' : 'Show password'}
             >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4 text-cyan-400" />}
+              {showPassword ? (
+                <EyeOff className="w-5 h-5 text-slate-400 hover:text-slate-200" />
+              ) : (
+                <Eye className="w-5 h-5 text-slate-300 hover:text-cyan-400" />
+              )}
             </button>
           </div>
         </div>
