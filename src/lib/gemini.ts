@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai'
 
-const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! })
+const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' })
 
 export interface ExtractedCtf {
   name?: string
@@ -41,8 +41,8 @@ export function extractTitleFromUrl(urlStr: string): string | null {
   }
 }
 
-// Smart heuristic fallback if AI quota is busy
-function extractHeuristics(text: string, sourceUrl?: string): ExtractedCtf {
+// Smart heuristic fallback if AI is slow or rate-limited
+export function extractHeuristics(text: string, sourceUrl?: string): ExtractedCtf {
   const isUnstop = sourceUrl?.includes('unstop.com')
   const isCtftime = sourceUrl?.includes('ctftime.org')
 
@@ -60,7 +60,12 @@ function extractHeuristics(text: string, sourceUrl?: string): ExtractedCtf {
 
   if (!result.name) {
     const lines = text.split('\n').map((l) => l.trim()).filter((l) => {
-      return l.length > 0 && !l.toLowerCase().includes('unstop - competitions') && !l.toLowerCase().startsWith('http')
+      return (
+        l.length > 0 &&
+        !l.toLowerCase().includes('unstop - competitions') &&
+        !l.toLowerCase().includes('competitions, quizzes') &&
+        !l.toLowerCase().startsWith('http')
+      )
     })
     if (lines.length > 0) {
       result.name = lines[0].replace(/^["']|["']$/g, '').slice(0, 100)
@@ -98,7 +103,12 @@ function extractHeuristics(text: string, sourceUrl?: string): ExtractedCtf {
 
   result.startTime = '09:00'
   result.endTime = '18:00'
-  result.description = text.length > 20 && !text.includes('Unstop - Competitions') ? text.slice(0, 1000) : ''
+  result.description =
+    text.length > 20 && !text.includes('Unstop - Competitions')
+      ? text.slice(0, 1000)
+      : isUnstop
+      ? 'Registered via Unstop.'
+      : ''
 
   return result
 }
@@ -107,6 +117,11 @@ export async function extractCtfDetails(text: string, sourceUrl?: string): Promi
   const isUnstop = sourceUrl?.includes('unstop.com')
   const isCtftime = sourceUrl?.includes('ctftime.org')
   const slugTitle = sourceUrl ? extractTitleFromUrl(sourceUrl) : null
+
+  // Fast check: if no GEMINI_API_KEY or text is minimal, return heuristics immediately
+  if (!process.env.GEMINI_API_KEY || text.length < 10) {
+    return extractHeuristics(text, sourceUrl)
+  }
 
   const prompt = `You are an expert CTF & Hackathon metadata extractor.
 Extract all competition details from the provided content and return ONLY valid JSON without markdown formatting.
@@ -127,11 +142,18 @@ Text Content:
 ${text.slice(0, 8000)}`
 
   try {
-    const response = await client.interactions.create({
+    const geminiPromise = client.interactions.create({
       model: 'gemini-3.8-flash',
       input: prompt,
       store: false,
     })
+
+    // Strict 5s timeout to prevent Netlify function timeouts
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Gemini API timeout')), 5000)
+    )
+
+    const response = await Promise.race([geminiPromise, timeoutPromise])
 
     const raw = response.output_text?.trim() ?? '{}'
     const cleaned = raw.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim()
@@ -172,8 +194,15 @@ ${text.slice(0, 8000)}`
 }
 
 export async function extractFromUrl(url: string): Promise<ExtractedCtf> {
+  const isUnstop = url.includes('unstop.com')
+  const slugTitle = extractTitleFromUrl(url)
+
   try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 4000)
+
     const res = await fetch(url, {
+      signal: controller.signal,
       redirect: 'follow',
       headers: {
         'User-Agent':
@@ -182,6 +211,7 @@ export async function extractFromUrl(url: string): Promise<ExtractedCtf> {
         'Accept-Language': 'en-US,en;q=0.9',
       },
     })
+    clearTimeout(timeoutId)
 
     const html = await res.text()
 
@@ -215,7 +245,7 @@ export async function extractFromUrl(url: string): Promise<ExtractedCtf> {
 
     return await extractCtfDetails(combinedContent, url)
   } catch (err) {
-    console.error('extractFromUrl error:', err)
+    console.warn('extractFromUrl fetch timed out or failed, falling back to heuristics:', err)
     return extractHeuristics(url, url)
   }
 }

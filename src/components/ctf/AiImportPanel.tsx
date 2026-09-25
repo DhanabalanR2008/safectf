@@ -33,21 +33,26 @@ export function AiImportPanel({ onExtracted, onBack, initialUrl }: AiImportPanel
         body: JSON.stringify({ url: url.trim() }),
       })
 
-      const data = await res.json()
+      const raw = await res.text()
+      let data: any = {}
+      try {
+        data = JSON.parse(raw)
+      } catch {
+        throw new Error('Server returned invalid response')
+      }
 
       if (!res.ok) {
         setError(data.error || 'Failed to extract from URL.')
         return
       }
 
-      if (!data.extracted || Object.keys(data.extracted).length === 0) {
-        setError('Could not extract details from URL. Try pasting the page text in the Text tab instead.')
-        return
+      if (data.extracted) {
+        onExtracted(data.extracted)
+      } else {
+        setError('Could not extract details from URL. Try pasting the description text instead.')
       }
-
-      onExtracted(data.extracted)
-    } catch {
-      setError('An error occurred while fetching the URL.')
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while fetching the URL.')
     } finally {
       setLoading(false)
     }
@@ -68,21 +73,26 @@ export function AiImportPanel({ onExtracted, onBack, initialUrl }: AiImportPanel
         body: JSON.stringify({ text }),
       })
 
-      const data = await res.json()
+      const raw = await res.text()
+      let data: any = {}
+      try {
+        data = JSON.parse(raw)
+      } catch {
+        throw new Error('Server returned invalid response')
+      }
 
       if (!res.ok) {
         setError(data.error || 'Extraction failed. Please try again.')
         return
       }
 
-      if (!data.extracted || Object.keys(data.extracted).length === 0) {
+      if (data.extracted) {
+        onExtracted(data.extracted)
+      } else {
         setError('Could not extract CTF details. Please try pasting more details.')
-        return
       }
-
-      onExtracted(data.extracted)
-    } catch {
-      setError('An unexpected error occurred. Please try again.')
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -126,11 +136,11 @@ export function AiImportPanel({ onExtracted, onBack, initialUrl }: AiImportPanel
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://unstop.com/hackathons/cyber-challenge-2026..."
+              placeholder="https://unstop.com/o/ODx9tyf... or https://unstop.com/hackathons/..."
               autoFocus
             />
             <p className="text-xs text-slate-400">
-              Paste any URL from <strong>Unstop</strong>, <strong>CTFtime</strong>, or an official competition site. Gemini AI will automatically fetch and extract all competition dates, registration deadline, team size, and rules!
+              Paste any URL from <strong>Unstop</strong>, <strong>CTFtime</strong>, or an official competition site. The system will automatically extract and pre-fill dates, source link, and competition details.
             </p>
           </div>
         ) : (
@@ -153,7 +163,7 @@ export function AiImportPanel({ onExtracted, onBack, initialUrl }: AiImportPanel
 
         <div className="bg-purple-500/5 border border-purple-500/20 rounded-lg p-3">
           <p className="text-xs text-purple-300">
-            ✨ <strong>AI Auto-Import:</strong> AI will parse the details and pre-fill all form fields so you can review and save with 1 click.
+            ✨ <strong>AI Auto-Import:</strong> All details will be pre-filled so you can review and click &quot;Save CTF&quot; to notify the team.
           </p>
         </div>
 

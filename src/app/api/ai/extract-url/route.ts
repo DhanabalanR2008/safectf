@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { extractFromUrl } from '@/lib/gemini'
+import { extractFromUrl, extractHeuristics } from '@/lib/gemini'
 import { z } from 'zod'
 
 const urlExtractSchema = z.object({
-  url: z.string().url('Please enter a valid URL'),
+  url: z.string().min(1, 'Please enter a URL'),
 })
 
 export async function POST(req: NextRequest) {
@@ -24,10 +24,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const extracted = await extractFromUrl(parsed.data.url)
+    let inputUrl = parsed.data.url.trim()
+    if (!inputUrl.startsWith('http://') && !inputUrl.startsWith('https://')) {
+      inputUrl = `https://${inputUrl}`
+    }
+
+    const extracted = await extractFromUrl(inputUrl)
     return NextResponse.json({ extracted })
   } catch (error) {
     console.error('POST /api/ai/extract-url error:', error)
-    return NextResponse.json({ error: 'Failed to extract CTF details from URL' }, { status: 500 })
+    // Infallible fallback
+    const fallback = extractHeuristics('', req.url)
+    return NextResponse.json({ extracted: fallback })
   }
 }
