@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
-import { Save, AlertTriangle } from 'lucide-react'
+import { Save, AlertTriangle, Trash2 } from 'lucide-react'
 
 interface Member {
   id: string
@@ -28,14 +28,15 @@ export function MemberEditForm({
 }) {
   const router = useRouter()
   const [name, setName] = useState(member?.name ?? '')
-  const [email, setEmail] = useState(member?.user?.email ?? '')
+  const [email, setEmail] = useState(member?.user?.email ?? member?.email ?? '')
   const [password, setPassword] = useState('')
   const [memberNumber, setMemberNumber] = useState(
-    member?.memberNumber ? String(member.memberNumber) : ''
+    member?.memberNumber !== undefined ? String(member.memberNumber) : ''
   )
   const [role, setRole] = useState(member?.user?.role ?? 'MEMBER')
   const [status, setStatus] = useState(member?.user?.status ?? 'ACTIVE')
   const [loading, setLoading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -83,6 +84,33 @@ export function MemberEditForm({
       setError('An unexpected error occurred.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!member) return
+    const confirmed = window.confirm(
+      `Are you sure you want to delete member #${member.memberNumber} (${member.name})? This will delete their account and attendances.`
+    )
+    if (!confirmed) return
+
+    setDeleting(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/admin/members/${member.id}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Failed to delete member')
+        setDeleting(false)
+        return
+      }
+      router.push('/admin')
+      router.refresh()
+    } catch {
+      setError('An unexpected error occurred while deleting.')
+      setDeleting(false)
     }
   }
 
@@ -188,10 +216,25 @@ export function MemberEditForm({
         </div>
       )}
 
-      <Button type="submit" isLoading={loading} size="lg">
-        <Save className="w-4 h-4" />
-        {isNew ? 'Create Member' : 'Save Changes'}
-      </Button>
+      <div className="flex items-center justify-between gap-4">
+        <Button type="submit" isLoading={loading} size="lg">
+          <Save className="w-4 h-4" />
+          {isNew ? 'Create Member' : 'Save Changes'}
+        </Button>
+
+        {!isNew && member && member.memberNumber !== 0 && (
+          <Button
+            type="button"
+            variant="danger"
+            size="lg"
+            isLoading={deleting}
+            onClick={handleDelete}
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete Member
+          </Button>
+        )}
+      </div>
     </form>
   )
 }
