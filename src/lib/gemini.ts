@@ -16,6 +16,31 @@ export interface ExtractedCtf {
   source?: 'UNSTOP' | 'CTFTIME' | 'MANUAL'
 }
 
+// Check if a title string is an invalid generic site slogan or header
+export function isInvalidTitle(title?: string | null): boolean {
+  if (!title) return true
+  const lower = title.toLowerCase().trim()
+  const blacklist = [
+    'corporates',
+    'students',
+    'competitions',
+    'hackathons',
+    'scholarships',
+    'internships',
+    'unstop',
+    'ctftime',
+    'ctftime.org',
+    'unstop - competitions',
+    'new ctf',
+    'untitled',
+    'home',
+  ]
+  if (blacklist.includes(lower)) return true
+  if (lower.includes('competitions, quizzes') || lower.includes('for students and corporates')) return true
+  if (lower.length < 3) return true
+  return false
+}
+
 // Extract human-readable title from an Unstop or other URL slug
 export function extractTitleFromUrl(urlStr: string): string | null {
   try {
@@ -29,7 +54,7 @@ export function extractTitleFromUrl(urlStr: string): string | null {
 
     // Strip trailing numeric ID if any (e.g. -123456)
     const cleaned = last.replace(/-\d{4,}$/, '').replace(/[-_]+/g, ' ')
-    if (cleaned.length < 3) return null
+    if (isInvalidTitle(cleaned)) return null
 
     // Title case
     return cleaned
@@ -55,22 +80,24 @@ export function extractHeuristics(text: string, sourceUrl?: string): ExtractedCt
   // 1. Name heuristics
   if (sourceUrl) {
     const slugTitle = extractTitleFromUrl(sourceUrl)
-    if (slugTitle) result.name = slugTitle
+    if (slugTitle && !isInvalidTitle(slugTitle)) {
+      result.name = slugTitle
+    }
   }
 
   if (!result.name) {
     const lines = text.split('\n').map((l) => l.trim()).filter((l) => {
       return (
         l.length > 0 &&
-        !l.toLowerCase().includes('unstop - competitions') &&
-        !l.toLowerCase().includes('competitions, quizzes') &&
-        !l.toLowerCase().startsWith('http')
+        !isInvalidTitle(l) &&
+        !l.toLowerCase().startsWith('http') &&
+        !l.includes('d8it4huxumps7')
       )
     })
-    if (lines.length > 0) {
+    if (lines.length > 0 && !isInvalidTitle(lines[0])) {
       result.name = lines[0].replace(/^["']|["']$/g, '').slice(0, 100)
     } else {
-      result.name = isUnstop ? 'Unstop Competition' : isCtftime ? 'CTFtime Event' : 'New CTF'
+      result.name = ''
     }
   }
 
@@ -104,7 +131,7 @@ export function extractHeuristics(text: string, sourceUrl?: string): ExtractedCt
   result.startTime = '09:00'
   result.endTime = '18:00'
   result.description =
-    text.length > 20 && !text.includes('Unstop - Competitions')
+    text.length > 20 && !isInvalidTitle(text)
       ? text.slice(0, 1000)
       : isUnstop
       ? 'Registered via Unstop.'
@@ -127,7 +154,7 @@ export async function extractCtfDetails(text: string, sourceUrl?: string): Promi
 Extract all competition details from the provided content and return ONLY valid JSON without markdown formatting.
 
 Guidelines:
-- name: Competition title (e.g. "${slugTitle || 'CyberWar CTF 2026'}"). NEVER return generic site headers like "Unstop - Competitions" or "CTFtime.org".
+- name: Competition title (e.g. "${slugTitle || 'CyberWar CTF 2026'}"). NEVER return generic site headers like "Unstop - Competitions", "Corporates", "Students", or "CTFtime.org". If unknown, return "".
 - ctfUrl: Registration or competition portal URL if present
 - startDate: Start date in YYYY-MM-DD format (convert any timezone to IST / UTC+5:30 if specified)
 - startTime: Start time in HH:MM (24-hour format, default "09:00")
@@ -165,16 +192,8 @@ ${text.slice(0, 8000)}`
       parsed.source = isUnstop ? 'UNSTOP' : isCtftime ? 'CTFTIME' : 'MANUAL'
     }
 
-    // Sanitize generic names
-    const isGenericName =
-      !parsed.name ||
-      parsed.name.toLowerCase().includes('unstop - competitions') ||
-      parsed.name.toLowerCase().includes('competitions, quizzes') ||
-      parsed.name.toLowerCase() === 'unstop' ||
-      parsed.name.toLowerCase() === 'ctftime.org'
-
-    if (isGenericName) {
-      parsed.name = slugTitle || (isUnstop ? 'Unstop Competition' : isCtftime ? 'CTFtime Event' : 'New CTF')
+    if (isInvalidTitle(parsed.name)) {
+      parsed.name = slugTitle && !isInvalidTitle(slugTitle) ? slugTitle : ''
     }
 
     if (!parsed.startDate) {
@@ -194,9 +213,6 @@ ${text.slice(0, 8000)}`
 }
 
 export async function extractFromUrl(url: string): Promise<ExtractedCtf> {
-  const isUnstop = url.includes('unstop.com')
-  const slugTitle = extractTitleFromUrl(url)
-
   try {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 4000)
