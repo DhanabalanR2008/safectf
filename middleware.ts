@@ -6,7 +6,7 @@ export default auth((req) => {
   const session = req.auth
 
   // Public paths that don't require auth
-  const publicPaths = ['/login', '/api/auth', '/api/init-db']
+  const publicPaths = ['/login', '/api/auth', '/api/init-db', '/api/test-auth']
   const isPublic = publicPaths.some((p) => pathname.startsWith(p))
 
   // Redirect authenticated users away from login
