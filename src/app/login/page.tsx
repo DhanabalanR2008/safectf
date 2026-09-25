@@ -2,14 +2,13 @@
 
 import { useState, FormEvent } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Shield, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Suspense } from 'react'
 
 function LoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -26,20 +25,20 @@ function LoginForm() {
 
     try {
       const result = await signIn('credentials', {
-        email,
+        email: email.trim(),
         password,
         redirect: false,
       })
 
       if (result?.error) {
         setError('Invalid email or password. Please try again.')
+        setLoading(false)
       } else {
-        router.push(callbackUrl)
-        router.refresh()
+        // Full page navigation to refresh session cookies
+        window.location.href = callbackUrl
       }
     } catch {
       setError('An unexpected error occurred. Please try again.')
-    } finally {
       setLoading(false)
     }
   }
@@ -64,7 +63,7 @@ function LoginForm() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder="admin@safectf.local"
               autoComplete="email"
               required
               autoFocus

@@ -6,7 +6,7 @@ export default auth((req) => {
   const session = req.auth
 
   // Public paths that don't require auth
-  const publicPaths = ['/login']
+  const publicPaths = ['/login', '/api/auth', '/api/init-db']
   const isPublic = publicPaths.some((p) => pathname.startsWith(p))
 
   // Redirect authenticated users away from login
@@ -16,6 +16,9 @@ export default auth((req) => {
 
   // Redirect unauthenticated users to login
   if (!session && !isPublic) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     const loginUrl = new URL('/login', req.url)
     loginUrl.searchParams.set('callbackUrl', pathname)
     return NextResponse.redirect(loginUrl)
@@ -25,7 +28,7 @@ export default auth((req) => {
   const isAdminRoute =
     pathname.startsWith('/admin') || pathname.startsWith('/api/admin')
 
-  if (isAdminRoute && session?.user.role !== 'ADMIN') {
+  if (isAdminRoute && session?.user?.role !== 'ADMIN') {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
