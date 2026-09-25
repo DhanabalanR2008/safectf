@@ -9,7 +9,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth()
-  if (!session || session.user.role !== 'ADMIN') {
+  if (!session || session.user?.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -26,7 +26,7 @@ export async function PATCH(
       )
     }
 
-    // Find the member
+    // Find the specific member by their unique ID
     const member = await db.member.findUnique({
       where: { id },
       include: { user: true },
@@ -36,19 +36,19 @@ export async function PATCH(
       return NextResponse.json({ error: 'Member not found' }, { status: 404 })
     }
 
-    // Update member name
+    // Update member name and email
     const memberUpdates: Record<string, unknown> = {}
     if (parsed.data.name) memberUpdates.name = parsed.data.name
-    if (parsed.data.email) memberUpdates.email = parsed.data.email
+    if (parsed.data.email) memberUpdates.email = parsed.data.email.toLowerCase().trim()
 
     if (Object.keys(memberUpdates).length > 0) {
-      await db.member.update({ where: { id }, data: memberUpdates })
+      await db.member.update({ where: { id: member.id }, data: memberUpdates })
     }
 
-    // Update user if linked
+    // Update or create linked User ONLY for this specific member
     if (member.user) {
       const userUpdates: Record<string, unknown> = {}
-      if (parsed.data.email) userUpdates.email = parsed.data.email
+      if (parsed.data.email) userUpdates.email = parsed.data.email.toLowerCase().trim()
       if (parsed.data.role) userUpdates.role = parsed.data.role
       if (parsed.data.status) userUpdates.status = parsed.data.status
       if (parsed.data.password) {
@@ -58,10 +58,22 @@ export async function PATCH(
       if (Object.keys(userUpdates).length > 0) {
         await db.user.update({ where: { id: member.user.id }, data: userUpdates })
       }
+    } else if (parsed.data.email && parsed.data.password) {
+      // First time setting credentials for this member slot
+      const passwordHash = await hash(parsed.data.password, 12)
+      await db.user.create({
+        data: {
+          email: parsed.data.email.toLowerCase().trim(),
+          passwordHash,
+          role: parsed.data.role || 'MEMBER',
+          status: parsed.data.status || 'ACTIVE',
+          memberId: member.id,
+        },
+      })
     }
 
     const updated = await db.member.findUnique({
-      where: { id },
+      where: { id: member.id },
       include: {
         user: { select: { id: true, email: true, role: true, status: true } },
       },
