@@ -16,24 +16,64 @@ export interface ExtractedCtf {
   source?: 'UNSTOP' | 'CTFTIME' | 'MANUAL'
 }
 
+// Extract human-readable title from an Unstop or other URL slug
+export function extractTitleFromUrl(urlStr: string): string | null {
+  try {
+    const url = new URL(urlStr)
+    const segments = url.pathname.split('/').filter(Boolean)
+    if (segments.length === 0) return null
+
+    // For URLs like /hackathons/my-hackathon-name-123456 or /competitions/my-comp-123456
+    const last = segments[segments.length - 1]
+    if (last === 'o' || segments[0] === 'o') return null // short link code
+
+    // Strip trailing numeric ID if any (e.g. -123456)
+    const cleaned = last.replace(/-\d{4,}$/, '').replace(/[-_]+/g, ' ')
+    if (cleaned.length < 3) return null
+
+    // Title case
+    return cleaned
+      .split(' ')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ')
+  } catch {
+    return null
+  }
+}
+
 // Smart heuristic fallback if AI quota is busy
 function extractHeuristics(text: string, sourceUrl?: string): ExtractedCtf {
+  const isUnstop = sourceUrl?.includes('unstop.com')
+  const isCtftime = sourceUrl?.includes('ctftime.org')
+
   const result: ExtractedCtf = {
-    source: sourceUrl?.includes('unstop.com') ? 'UNSTOP' : sourceUrl?.includes('ctftime.org') ? 'CTFTIME' : 'MANUAL',
+    source: isUnstop ? 'UNSTOP' : isCtftime ? 'CTFTIME' : 'MANUAL',
     sourceUrl: sourceUrl || undefined,
     ctfUrl: sourceUrl || undefined,
   }
 
   // 1. Name heuristics
-  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
-  if (lines.length > 0) {
-    result.name = lines[0].replace(/^["']|["']$/g, '').slice(0, 100)
+  if (sourceUrl) {
+    const slugTitle = extractTitleFromUrl(sourceUrl)
+    if (slugTitle) result.name = slugTitle
+  }
+
+  if (!result.name) {
+    const lines = text.split('\n').map((l) => l.trim()).filter((l) => {
+      return l.length > 0 && !l.toLowerCase().includes('unstop - competitions') && !l.toLowerCase().startsWith('http')
+    })
+    if (lines.length > 0) {
+      result.name = lines[0].replace(/^["']|["']$/g, '').slice(0, 100)
+    } else {
+      result.name = isUnstop ? 'Unstop Competition' : isCtftime ? 'CTFtime Event' : 'New CTF'
+    }
   }
 
   // 2. Team size heuristic
-  const teamMatch = text.match(/team\s*(?:size|of|members)?\s*[:=-]?\s*(\d+)/i) ||
-                    text.match(/(\d+)\s*(?:members?|players?)\s*(?:per|in a)?\s*team/i) ||
-                    text.match(/max(?:imum)?\s*team\s*size\s*[:=-]?\s*(\d+)/i)
+  const teamMatch =
+    text.match(/team\s*(?:size|of|members)?\s*[:=-]?\s*(\d+)/i) ||
+    text.match(/(\d+)\s*(?:members?|players?)\s*(?:per|in a)?\s*team/i) ||
+    text.match(/max(?:imum)?\s*team\s*size\s*[:=-]?\s*(\d+)/i)
   if (teamMatch) {
     const size = parseInt(teamMatch[1], 10)
     if (size >= 1 && size <= 100) result.teamSize = size
@@ -58,27 +98,32 @@ function extractHeuristics(text: string, sourceUrl?: string): ExtractedCtf {
 
   result.startTime = '09:00'
   result.endTime = '18:00'
-  result.description = text.slice(0, 1000)
+  result.description = text.length > 20 && !text.includes('Unstop - Competitions') ? text.slice(0, 1000) : ''
 
   return result
 }
 
 export async function extractCtfDetails(text: string, sourceUrl?: string): Promise<ExtractedCtf> {
+  const isUnstop = sourceUrl?.includes('unstop.com')
+  const isCtftime = sourceUrl?.includes('ctftime.org')
+  const slugTitle = sourceUrl ? extractTitleFromUrl(sourceUrl) : null
+
   const prompt = `You are an expert CTF & Hackathon metadata extractor.
-Extract all competition details from the text below and return ONLY valid JSON without markdown formatting.
+Extract all competition details from the provided content and return ONLY valid JSON without markdown formatting.
 
-JSON keys:
-- name: string (Competition title)
-- ctfUrl: string (Portal/registration URL)
-- startDate: string (YYYY-MM-DD)
-- startTime: string (HH:MM in 24h, default "09:00")
-- endDate: string (YYYY-MM-DD)
-- endTime: string (HH:MM in 24h, default "18:00")
-- registrationDeadline: string (ISO 8601 or YYYY-MM-DDTHH:MM, or null)
-- teamSize: number (Allowed team size or integer, e.g. 6 or null)
-- description: string (2-3 sentence overview)
+Guidelines:
+- name: Competition title (e.g. "${slugTitle || 'CyberWar CTF 2026'}"). NEVER return generic site headers like "Unstop - Competitions" or "CTFtime.org".
+- ctfUrl: Registration or competition portal URL if present
+- startDate: Start date in YYYY-MM-DD format (convert any timezone to IST / UTC+5:30 if specified)
+- startTime: Start time in HH:MM (24-hour format, default "09:00")
+- endDate: End date in YYYY-MM-DD format
+- endTime: End time in HH:MM (24-hour format, default "18:00")
+- registrationDeadline: Registration deadline datetime in YYYY-MM-DDTHH:MM or null
+- teamSize: Maximum allowed team size integer (e.g. 1 to 6) or null
+- description: Concise 2-3 sentence overview or rules summary
 
-Text:
+Source URL: ${sourceUrl || 'N/A'}
+Text Content:
 ${text.slice(0, 8000)}`
 
   try {
@@ -95,12 +140,26 @@ ${text.slice(0, 8000)}`
     if (sourceUrl) {
       parsed.sourceUrl = sourceUrl
       if (!parsed.ctfUrl) parsed.ctfUrl = sourceUrl
-      parsed.source = sourceUrl.includes('unstop.com') ? 'UNSTOP' : sourceUrl.includes('ctftime.org') ? 'CTFTIME' : 'MANUAL'
+      parsed.source = isUnstop ? 'UNSTOP' : isCtftime ? 'CTFTIME' : 'MANUAL'
     }
 
-    // Ensure required fields exist
-    if (!parsed.name && text) parsed.name = text.split('\n')[0].slice(0, 80)
-    if (!parsed.startDate) parsed.startDate = new Date().toISOString().split('T')[0]
+    // Sanitize generic names
+    const isGenericName =
+      !parsed.name ||
+      parsed.name.toLowerCase().includes('unstop - competitions') ||
+      parsed.name.toLowerCase().includes('competitions, quizzes') ||
+      parsed.name.toLowerCase() === 'unstop' ||
+      parsed.name.toLowerCase() === 'ctftime.org'
+
+    if (isGenericName) {
+      parsed.name = slugTitle || (isUnstop ? 'Unstop Competition' : isCtftime ? 'CTFtime Event' : 'New CTF')
+    }
+
+    if (!parsed.startDate) {
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      parsed.startDate = tomorrow.toISOString().split('T')[0]
+    }
     if (!parsed.endDate) parsed.endDate = parsed.startDate
     if (!parsed.startTime) parsed.startTime = '09:00'
     if (!parsed.endTime) parsed.endTime = '18:00'
@@ -126,16 +185,25 @@ export async function extractFromUrl(url: string): Promise<ExtractedCtf> {
 
     const html = await res.text()
 
-    // 1. Extract meta tags
-    const titleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
-                       html.match(/<title>([^<]+)<\/title>/i)
-    const descMatch = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i) ||
-                      html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i)
+    // 1. Extract JSON-LD structured data if present
+    let jsonLdContent = ''
+    const jsonLdMatch = html.match(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)
+    if (jsonLdMatch) {
+      jsonLdContent = jsonLdMatch.map((tag) => tag.replace(/<[^>]+>/g, '').trim()).join('\n')
+    }
+
+    // 2. Extract meta tags
+    const titleMatch =
+      html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+      html.match(/<title>([^<]+)<\/title>/i)
+    const descMatch =
+      html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i)
 
     const title = titleMatch ? titleMatch[1].trim() : ''
     const desc = descMatch ? descMatch[1].trim() : ''
 
-    // 2. Extract clean body text
+    // 3. Extract clean body text
     const textOnly = html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
@@ -143,7 +211,7 @@ export async function extractFromUrl(url: string): Promise<ExtractedCtf> {
       .replace(/\s+/g, ' ')
       .trim()
 
-    const combinedContent = `${title}\n\n${desc}\n\n${textOnly.slice(0, 4000)}`
+    const combinedContent = `${title}\n\n${desc}\n\n${jsonLdContent}\n\n${textOnly.slice(0, 4000)}`
 
     return await extractCtfDetails(combinedContent, url)
   } catch (err) {
