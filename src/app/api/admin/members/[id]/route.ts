@@ -35,40 +35,53 @@ export async function PATCH(
       return NextResponse.json({ error: 'Member not found' }, { status: 404 })
     }
 
-    // Update member name and email
-    const memberUpdates: Record<string, unknown> = {}
-    if (parsed.data.name) memberUpdates.name = parsed.data.name
-    if (parsed.data.email) memberUpdates.email = parsed.data.email.toLowerCase().trim()
+    const newEmail = parsed.data.email?.toLowerCase().trim()
 
-    if (Object.keys(memberUpdates).length > 0) {
-      await db.member.update({ where: { id: member.id }, data: memberUpdates })
-    }
-
-    // Update or create linked User ONLY for this specific member
-    if (member.user) {
-      const userUpdates: Record<string, unknown> = {}
-      if (parsed.data.email) userUpdates.email = parsed.data.email.toLowerCase().trim()
-      if (parsed.data.role) userUpdates.role = parsed.data.role
-      if (parsed.data.status) userUpdates.status = parsed.data.status
-      if (parsed.data.password) {
-        userUpdates.passwordHash = await hash(parsed.data.password, 12)
+    await db.$transaction(async (tx) => {
+      // Only update member fields that actually changed
+      const memberUpdates: Record<string, unknown> = {}
+      if (parsed.data.name && parsed.data.name !== member.name) {
+        memberUpdates.name = parsed.data.name
+      }
+      if (newEmail && newEmail !== member.email?.toLowerCase()) {
+        memberUpdates.email = newEmail
+      }
+      if (Object.keys(memberUpdates).length > 0) {
+        await tx.member.update({ where: { id: member.id }, data: memberUpdates })
       }
 
-      if (Object.keys(userUpdates).length > 0) {
-        await db.user.update({ where: { id: member.user.id }, data: userUpdates })
+      if (member.user) {
+        // Only update user fields that actually changed
+        const userUpdates: Record<string, unknown> = {}
+        if (newEmail && newEmail !== member.user.email?.toLowerCase()) {
+          userUpdates.email = newEmail
+        }
+        if (parsed.data.role && parsed.data.role !== member.user.role) {
+          userUpdates.role = parsed.data.role
+        }
+        if (parsed.data.status && parsed.data.status !== member.user.status) {
+          userUpdates.status = parsed.data.status
+        }
+        if (parsed.data.password) {
+          userUpdates.passwordHash = await hash(parsed.data.password, 12)
+        }
+        if (Object.keys(userUpdates).length > 0) {
+          await tx.user.update({ where: { id: member.user.id }, data: userUpdates })
+        }
+      } else if (newEmail && parsed.data.password) {
+        // Create a user account if none exists
+        const passwordHash = await hash(parsed.data.password, 12)
+        await tx.user.create({
+          data: {
+            email: newEmail,
+            passwordHash,
+            role: parsed.data.role || 'MEMBER',
+            status: parsed.data.status || 'ACTIVE',
+            memberId: member.id,
+          },
+        })
       }
-    } else if (parsed.data.email && parsed.data.password) {
-      const passwordHash = await hash(parsed.data.password, 12)
-      await db.user.create({
-        data: {
-          email: parsed.data.email.toLowerCase().trim(),
-          passwordHash,
-          role: parsed.data.role || 'MEMBER',
-          status: parsed.data.status || 'ACTIVE',
-          memberId: member.id,
-        },
-      })
-    }
+    })
 
     const updated = await db.member.findUnique({
       where: { id: member.id },
@@ -78,8 +91,20 @@ export async function PATCH(
     })
 
     return NextResponse.json(updated)
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('PATCH /api/admin/members/[id] error:', error)
+    // Surface Prisma unique constraint errors clearly
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code: string }).code === 'P2002'
+    ) {
+      return NextResponse.json(
+        { error: 'That email address is already in use by another account.' },
+        { status: 409 }
+      )
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
