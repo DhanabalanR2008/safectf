@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { StatusDot } from '@/components/ui/StatusDot'
 import { AttendanceButtons } from '@/components/ctf/AttendanceButtons'
+import { DeleteCtfButton } from '@/components/ctf/DeleteCtfButton'
 import { ExternalLink, User, Calendar, Users, Info, ArrowLeft } from 'lucide-react'
 
 export default async function CtfDetailPage({
@@ -49,11 +50,16 @@ export default async function CtfDetailPage({
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div className="flex items-center gap-3">
-        <Link href="/dashboard" className="text-slate-400 hover:text-slate-200 transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <h1 className="text-2xl font-bold text-white">{ctf.name}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link href="/dashboard" className="text-slate-400 hover:text-slate-200 transition-colors shrink-0">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <h1 className="text-2xl font-bold text-white truncate">{ctf.name}</h1>
+        </div>
+        {session.user.role === 'ADMIN' && (
+          <DeleteCtfButton ctfId={ctf.id} />
+        )}
       </div>
 
       {/* CTF Info */}
