@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
-import { Save, ArrowLeft, ChevronDown, Check, Users } from 'lucide-react'
+import { Save, ArrowLeft, ChevronDown, Check, Users, Mic, MicOff, Loader2 } from 'lucide-react'
 
 interface MemberOption {
   id: string
@@ -32,7 +32,7 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
   const [startAt, setStartAt] = useState(initialData?.startAt ?? '')
   const [endAt, setEndAt] = useState(initialData?.endAt ?? '')
   const [teamSize, setTeamSize] = useState(initialData?.teamSize ?? '')
-  
+
   const [allMembers, setAllMembers] = useState<MemberOption[]>([])
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(initialData?.memberIds ?? [])
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -40,6 +40,15 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [globalError, setGlobalError] = useState('')
+
+  // Voice control state
+  const [isListening, setIsListening] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [voiceTranscript, setVoiceTranscript] = useState('')
+  const [voiceStatus, setVoiceStatus] = useState<'idle' | 'listening' | 'processing' | 'done' | 'error'>('idle')
+  const [voiceError, setVoiceError] = useState('')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null)
 
   useEffect(() => {
     async function fetchMembers() {
@@ -69,6 +78,164 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
     return new Date(localDatetime).toISOString()
   }
 
+  // ------ Voice Control ------
+  function startListening() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognitionAPI) {
+      setVoiceError('Voice recognition not supported in this browser. Try Chrome.')
+      setVoiceStatus('error')
+      return
+    }
+
+    setVoiceTranscript('')
+    setVoiceError('')
+    setVoiceStatus('listening')
+    setIsListening(true)
+
+    const recognition = new SpeechRecognitionAPI()
+    recognition.lang = 'en-IN'
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.maxAlternatives = 1
+    recognitionRef.current = recognition
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      let interim = ''
+      let final = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript
+        if (event.results[i].isFinal) final += t
+        else interim += t
+      }
+      setVoiceTranscript((prev) => prev + final + interim)
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+      if (voiceTranscript.trim().length > 2 || recognitionRef.current !== null) {
+        // onend fires before last state update; grab from DOM via ref
+        processTranscript()
+      }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onerror = (event: any) => {
+      setIsListening(false)
+      setVoiceStatus('error')
+      setVoiceError(`Microphone error: ${event.error}`)
+      recognitionRef.current = null
+    }
+
+    recognition.start()
+  }
+
+  function stopListening() {
+    recognitionRef.current?.stop()
+    recognitionRef.current = null
+    setIsListening(false)
+  }
+
+  async function processTranscript() {
+    const text = voiceTranscript.trim()
+    if (!text) {
+      setVoiceStatus('error')
+      setVoiceError('No speech detected. Please try again.')
+      return
+    }
+
+    setVoiceStatus('processing')
+    setIsProcessing(true)
+
+    try {
+      const res = await fetch('/api/ai/voice-ctf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: text }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setVoiceStatus('error')
+        setVoiceError(data.error || 'Failed to process voice input')
+        return
+      }
+
+      const ex = data.extracted as {
+        name?: string
+        ctfUrl?: string
+        startDate?: string
+        startTime?: string
+        endDate?: string
+        endTime?: string
+        teamSize?: number
+        memberNames?: string[]
+      }
+
+      // Fill form fields
+      if (ex.name) setName(ex.name)
+      if (ex.ctfUrl) setCtfUrl(ex.ctfUrl)
+
+      if (ex.startDate) {
+        const time = ex.startTime || '09:00'
+        // datetime-local format: YYYY-MM-DDTHH:MM
+        setStartAt(`${ex.startDate}T${time}`)
+      }
+      if (ex.endDate) {
+        const time = ex.endTime || '18:00'
+        setEndAt(`${ex.endDate}T${time}`)
+      }
+      if (ex.teamSize) setTeamSize(String(ex.teamSize))
+
+      // Match spoken names to actual member list (case-insensitive fuzzy)
+      if (ex.memberNames && ex.memberNames.length > 0) {
+        const matchedIds: string[] = []
+        for (const spokenName of ex.memberNames) {
+          const lower = spokenName.toLowerCase().trim()
+          const match = allMembers.find(
+            (m) =>
+              m.name.toLowerCase().includes(lower) ||
+              lower.includes(m.name.toLowerCase().split(' ')[0])
+          )
+          if (match && !matchedIds.includes(match.id)) {
+            matchedIds.push(match.id)
+          }
+        }
+        if (matchedIds.length > 0) {
+          setSelectedMemberIds((prev) => [...new Set([...prev, ...matchedIds])])
+        }
+      }
+
+      setVoiceStatus('done')
+    } catch {
+      setVoiceStatus('error')
+      setVoiceError('Failed to connect to AI. Please try again.')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  function handleMicClick() {
+    if (isListening) {
+      stopListening()
+    } else {
+      startListening()
+    }
+  }
+
+  // After stopListening triggers onend, processTranscript is called — but we need
+  // the latest transcript. Use an effect to handle the stop→process flow:
+  const prevListening = useRef(false)
+  useEffect(() => {
+    if (prevListening.current && !isListening && voiceStatus === 'listening') {
+      processTranscript()
+    }
+    prevListening.current = isListening
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isListening])
+
+  // ------ Submit ------
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErrors({})
@@ -119,9 +286,79 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
     }
   }
 
+  const micStatusColor =
+    voiceStatus === 'listening'
+      ? 'bg-red-500/20 border-red-500/50 text-red-400'
+      : voiceStatus === 'processing'
+      ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
+      : voiceStatus === 'done'
+      ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+      : voiceStatus === 'error'
+      ? 'bg-red-500/10 border-red-500/30 text-red-400'
+      : 'bg-slate-700/50 border-slate-600 text-slate-400'
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+
+        {/* Voice Control Banner */}
+        <div className="flex items-start gap-3 p-3 bg-slate-800/60 border border-slate-700 rounded-lg">
+          <button
+            type="button"
+            onClick={handleMicClick}
+            disabled={isProcessing}
+            title={isListening ? 'Stop listening' : 'Start voice input'}
+            className={`flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full border transition-all duration-200 disabled:opacity-50 ${
+              isListening
+                ? 'bg-red-500 border-red-400 text-white animate-pulse shadow-lg shadow-red-500/40'
+                : 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 hover:border-cyan-500/50'
+            }`}
+          >
+            {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+          </button>
+
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-slate-300 mb-0.5">
+              {isListening
+                ? '🔴 Listening… Speak now — say the CTF name, dates, team size and member names'
+                : isProcessing
+                ? '⏳ Processing with Gemini AI…'
+                : voiceStatus === 'done'
+                ? '✅ Form filled from voice! Review the fields below.'
+                : voiceStatus === 'error'
+                ? '❌ ' + voiceError
+                : '🎤 Click the mic to fill this form by voice'}
+            </p>
+
+            {voiceTranscript && (
+              <p className="text-xs text-slate-500 truncate">
+                Heard: &ldquo;{voiceTranscript}&rdquo;
+              </p>
+            )}
+
+            {isProcessing && (
+              <div className="flex items-center gap-1.5 mt-1">
+                <Loader2 className="w-3 h-3 text-cyan-400 animate-spin" />
+                <span className="text-xs text-cyan-400">Gemini is parsing your voice…</span>
+              </div>
+            )}
+          </div>
+
+          {voiceStatus !== 'idle' && !isListening && !isProcessing && (
+            <button
+              type="button"
+              onClick={() => {
+                setVoiceStatus('idle')
+                setVoiceTranscript('')
+                setVoiceError('')
+              }}
+              className="text-xs text-slate-500 hover:text-slate-300 flex-shrink-0"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
         {/* CTF Name */}
         <Input
           label="CTF Name *"
@@ -136,7 +373,7 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
         {/* Start Date & End Date */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-slate-300">Start Date & Time *</label>
+            <label className="text-sm font-medium text-slate-300">Start Date &amp; Time *</label>
             <input
               type="datetime-local"
               value={startAt}
@@ -148,7 +385,7 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-slate-300">End Date & Time *</label>
+            <label className="text-sm font-medium text-slate-300">End Date &amp; Time *</label>
             <input
               type="datetime-local"
               value={endAt}
@@ -186,7 +423,7 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
         {/* Members Name Selection (Down Arrow Dropdown) */}
         <div className="flex flex-col gap-1 relative">
           <label className="text-sm font-medium text-slate-300">Select Team Members</label>
-          
+
           <button
             type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}

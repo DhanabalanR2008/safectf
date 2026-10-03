@@ -368,3 +368,53 @@ export async function extractFromUrl(url: string): Promise<ExtractedCtf> {
     return extractHeuristics(url, url)
   }
 }
+export interface VoiceExtractedCtf {
+  name?: string
+  ctfUrl?: string
+  startDate?: string   // YYYY-MM-DD
+  startTime?: string   // HH:MM
+  endDate?: string     // YYYY-MM-DD
+  endTime?: string     // HH:MM
+  teamSize?: number
+  memberNames?: string[]  // raw names spoken, will be matched client-side
+}
+
+export async function extractCtfFromVoice(transcript: string): Promise<VoiceExtractedCtf> {
+  if (!process.env.GEMINI_API_KEY || transcript.trim().length < 3) return {}
+
+  const today = new Date().toISOString().split('T')[0]
+
+  const prompt = `You are a helpful assistant that extracts CTF competition details from a spoken voice transcript.
+Today's date is ${today}.
+
+Extract these fields and return ONLY valid JSON (no markdown, no explanation):
+- name: string — the CTF competition name (e.g. "CyberCTF" or "PicoCTF 2026"). null if not mentioned.
+- ctfUrl: string — any URL/website mentioned. null if not mentioned.
+- startDate: string — start date in YYYY-MM-DD format. If only day/month spoken without year, use current or next upcoming date. null if not mentioned.
+- startTime: string — start time HH:MM (24h). Default "09:00" if a start date is given but no time.
+- endDate: string — end date in YYYY-MM-DD format. null if not mentioned.
+- endTime: string — end time HH:MM (24h). Default "18:00" if an end date is given but no time.
+- teamSize: number — max team members count integer. null if not mentioned.
+- memberNames: array of strings — names of people mentioned as team members (e.g. ["Abhishek", "Abinaya"]). Empty array [] if none mentioned.
+
+Voice transcript:
+"${transcript.trim()}"
+
+Return ONLY a JSON object. Example:
+{"name":"CyberCTF","ctfUrl":null,"startDate":"2026-10-26","startTime":"09:00","endDate":"2026-10-27","endTime":"18:00","teamSize":4,"memberNames":["Abhishek","Harijith"]}`
+
+  try {
+    const response = await client.interactions.create({
+      model: 'gemini-3.8-flash',
+      input: prompt,
+      store: false,
+    })
+
+    const raw = response.output_text?.trim() ?? '{}'
+    const cleaned = raw.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim()
+    return JSON.parse(cleaned) as VoiceExtractedCtf
+  } catch (err) {
+    console.warn('Voice extraction Gemini error:', err)
+    return {}
+  }
+}

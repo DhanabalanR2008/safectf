@@ -56,7 +56,7 @@ function LoginFormContent() {
 
         {/* Form */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-slate-300">Roll No / ID</label>
               <div className="relative">
@@ -64,10 +64,14 @@ function LoginFormContent() {
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="e.g. 25SY001 or 25SY012"
+                  placeholder=""
                   required
-                  autoFocus
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent uppercase placeholder:normal-case font-mono"
+                  autoFocus={false}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent uppercase font-mono"
                 />
               </div>
             </div>
@@ -79,10 +83,10 @@ function LoginFormContent() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Your password"
-                  autoComplete="current-password"
+                  placeholder=""
+                  autoComplete="new-password"
                   required
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 pr-10 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent font-mono"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 pr-10 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent font-mono"
                 />
                 <button
                   type="button"
