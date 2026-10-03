@@ -124,7 +124,13 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
     recognition.onerror = (event: any) => {
       setIsListening(false)
       setVoiceStatus('error')
-      setVoiceError(`Microphone error: ${event.error}`)
+      if (event.error === 'not-allowed') {
+        setVoiceError('Microphone permission blocked. Click the lock/settings icon in your browser address bar and enable Microphone.')
+      } else if (event.error === 'no-speech') {
+        setVoiceError('No speech detected. Please try speaking closer to the mic.')
+      } else {
+        setVoiceError(`Microphone error: ${event.error}`)
+      }
       recognitionRef.current = null
     }
 
