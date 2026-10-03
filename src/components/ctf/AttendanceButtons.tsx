@@ -45,28 +45,28 @@ export function AttendanceButtons({ ctfId, currentStatus }: AttendanceButtonsPro
     <div className="flex flex-wrap gap-2">
       <Button
         size="sm"
-        variant={status === 'ATTENDING' ? 'primary' : 'outline'}
+        variant={status === 'ATTENDING' ? 'primary' : 'ghost'}
         isLoading={loading === 'ATTENDING'}
         onClick={() => updateStatus('ATTENDING')}
-        className={status === 'ATTENDING' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'text-emerald-700 hover:bg-emerald-50 border-emerald-200'}
+        className={status === 'ATTENDING' ? '' : 'text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/10'}
       >
         Attending
       </Button>
       <Button
         size="sm"
-        variant={status === 'MAYBE' ? 'secondary' : 'outline'}
+        variant={status === 'MAYBE' ? 'secondary' : 'ghost'}
         isLoading={loading === 'MAYBE'}
         onClick={() => updateStatus('MAYBE')}
-        className={status === 'MAYBE' ? 'bg-amber-100 text-amber-800' : 'text-amber-700 hover:bg-amber-50 border-amber-200'}
+        className={status === 'MAYBE' ? 'bg-yellow-500/20 text-yellow-400' : 'text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/10'}
       >
         Maybe
       </Button>
       <Button
         size="sm"
-        variant={status === 'NOT_ATTENDING' ? 'danger' : 'outline'}
+        variant="ghost"
         isLoading={loading === 'NOT_ATTENDING'}
         onClick={() => updateStatus('NOT_ATTENDING')}
-        className={status === 'NOT_ATTENDING' ? '' : 'text-rose-700 hover:bg-rose-50 border-rose-200'}
+        className={status === 'NOT_ATTENDING' ? 'bg-red-500/20 text-red-400' : 'text-red-400 border border-red-500/30 hover:bg-red-500/10'}
       >
         Not Attending
       </Button>

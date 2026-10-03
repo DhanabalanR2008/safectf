@@ -7,17 +7,17 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants = {
-  primary: 'bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-xs',
-  secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium',
-  danger: 'bg-rose-600 hover:bg-rose-700 text-white font-medium shadow-xs',
-  ghost: 'hover:bg-slate-100 text-slate-600 hover:text-slate-900',
-  outline: 'border border-slate-200 hover:border-slate-300 bg-white text-slate-700 hover:text-slate-900 shadow-xs',
+  primary: 'bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-semibold',
+  secondary: 'bg-slate-700 hover:bg-slate-600 text-slate-200',
+  danger: 'bg-red-600 hover:bg-red-500 text-white font-semibold',
+  ghost: 'hover:bg-slate-800 text-slate-400 hover:text-slate-200',
+  outline: 'border border-slate-600 hover:border-slate-400 text-slate-300 hover:text-slate-100',
 }
 
 const sizes = {
-  sm: 'px-3 py-1.5 text-xs rounded-lg',
-  md: 'px-4 py-2 text-sm rounded-xl',
-  lg: 'px-5 py-2.5 text-sm rounded-xl',
+  sm: 'px-3 py-1.5 text-sm',
+  md: 'px-4 py-2 text-sm',
+  lg: 'px-6 py-3 text-base',
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -27,8 +27,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={`
-          inline-flex items-center justify-center gap-2 transition-all cursor-pointer
-          focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600
+          inline-flex items-center justify-center gap-2 rounded-lg transition-colors cursor-pointer
+          focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-slate-950
           disabled:opacity-50 disabled:cursor-not-allowed
           ${variants[variant]} ${sizes[size]} ${className}
         `}

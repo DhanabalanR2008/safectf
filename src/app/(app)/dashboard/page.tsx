@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { format, differenceInMinutes, differenceInHours } from 'date-fns'
-import { Clock, Users, ExternalLink, ChevronRight, ArrowRight, PlusCircle } from 'lucide-react'
+import { Clock, Users, ExternalLink, ChevronRight, PlusCircle, ArrowRight } from 'lucide-react'
 
 function getUrgencyText(startAt: Date, endAt: Date, now: Date) {
   if (now >= startAt && now <= endAt) {
@@ -50,8 +50,8 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Active Competitions</h1>
-          <p className="text-slate-500 text-sm mt-0.5">
+          <h1 className="text-2xl font-bold text-white tracking-tight">Active Competitions</h1>
+          <p className="text-slate-400 text-sm mt-0.5">
             Upcoming and live CTF challenges. Finished competitions are archived in History.
           </p>
         </div>
@@ -66,25 +66,25 @@ export default async function DashboardPage() {
       {nextCtf ? (
         <div className="space-y-6">
           {/* Main Hero Card for Closest CTF */}
-          <Card className="border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
+          <Card className="border-cyan-500/20 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/20">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
               <div className="space-y-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
                   {getUrgencyText(nextCtf.startAt, nextCtf.endAt, now)}
                 </div>
 
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                <h2 className="text-2xl font-bold text-white tracking-tight">
                   {nextCtf.name}
                 </h2>
 
-                <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <Clock className="w-4 h-4 text-slate-400" />
+                <div className="flex flex-wrap items-center gap-4 text-sm text-slate-300">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-cyan-400" />
                     {format(nextCtf.startAt, 'MMM d, h:mm a')} – {format(nextCtf.endAt, 'MMM d, h:mm a')}
                   </span>
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <Users className="w-4 h-4 text-slate-400" />
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-cyan-400" />
                     {nextCtf.attendance.filter((a) => a.status === 'ATTENDING').length} Attending
                     {nextCtf.teamSize ? ` (Max ${nextCtf.teamSize})` : ''}
                   </span>
@@ -97,13 +97,13 @@ export default async function DashboardPage() {
                     .map((att) => (
                       <span
                         key={att.id}
-                        className="px-2 py-0.5 bg-white border border-slate-200 text-slate-700 rounded-md text-xs font-medium shadow-2xs"
+                        className="px-2 py-0.5 bg-slate-800 border border-slate-700 text-slate-200 rounded-md text-xs font-medium"
                       >
                         #{att.member.memberNumber} {att.member.name}
                       </span>
                     ))}
                   {nextCtf.attendance.filter((a) => a.status === 'ATTENDING').length === 0 && (
-                    <span className="text-xs text-slate-400 italic">No members confirmed yet</span>
+                    <span className="text-xs text-slate-500 italic">No members confirmed yet</span>
                   )}
                 </div>
               </div>
@@ -130,22 +130,22 @@ export default async function DashboardPage() {
           {/* Other upcoming CTFs if any */}
           {otherActiveCtfs.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 Other Upcoming Competitions ({otherActiveCtfs.length})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {otherActiveCtfs.map((ctf) => {
                   const attending = ctf.attendance.filter((a) => a.status === 'ATTENDING').length
                   return (
-                    <Card key={ctf.id} className="hover:border-slate-300 transition-all p-5">
+                    <Card key={ctf.id} className="hover:border-slate-700 transition-all p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 space-y-1">
-                          <h4 className="font-semibold text-slate-900 truncate">{ctf.name}</h4>
-                          <p className="text-xs text-slate-500">
+                          <h4 className="font-semibold text-white truncate">{ctf.name}</h4>
+                          <p className="text-xs text-slate-400">
                             {format(ctf.startAt, 'MMM d, h:mm a')}
                           </p>
-                          <div className="flex items-center gap-2 text-xs text-slate-600 pt-1">
-                            <span className="font-medium text-slate-700">{attending} attending</span>
+                          <div className="flex items-center gap-2 text-xs text-slate-400 pt-1">
+                            <span className="text-cyan-400 font-medium">{attending} attending</span>
                             {ctf.teamSize && <span>&middot; Max {ctf.teamSize}</span>}
                           </div>
                         </div>
@@ -164,11 +164,11 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <Card className="text-center py-16 px-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mx-auto mb-4">
+          <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mx-auto mb-4">
             <Clock className="w-6 h-6" />
           </div>
-          <h3 className="text-lg font-bold text-slate-900">No Active CTFs</h3>
-          <p className="text-sm text-slate-500 max-w-sm mx-auto mt-1 mb-6">
+          <h3 className="text-lg font-bold text-white">No Active CTFs</h3>
+          <p className="text-sm text-slate-400 max-w-sm mx-auto mt-1 mb-6">
             There are no ongoing or scheduled competitions right now. Completed events are stored in History.
           </p>
           <Link href="/ctfs/add">

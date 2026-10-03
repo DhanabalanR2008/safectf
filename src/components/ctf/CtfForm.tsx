@@ -41,7 +41,6 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [globalError, setGlobalError] = useState('')
 
-  // Load team members to allow selecting who attends
   useEffect(() => {
     async function fetchMembers() {
       try {
@@ -122,7 +121,7 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="bg-white border border-slate-200 shadow-xs rounded-2xl p-6 space-y-5">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
         {/* CTF Name */}
         <Input
           label="CTF Name *"
@@ -136,28 +135,28 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
 
         {/* Start Date & End Date */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">Start Date & Time *</label>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-slate-300">Start Date & Time *</label>
             <input
               type="datetime-local"
               value={startAt}
               onChange={(e) => setStartAt(e.target.value)}
               required
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             />
-            {errors.startAt && <p className="text-xs text-rose-600 font-medium">{errors.startAt}</p>}
+            {errors.startAt && <p className="text-xs text-red-400">{errors.startAt}</p>}
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">End Date & Time *</label>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-slate-300">End Date & Time *</label>
             <input
               type="datetime-local"
               value={endAt}
               onChange={(e) => setEndAt(e.target.value)}
               required
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             />
-            {errors.endAt && <p className="text-xs text-rose-600 font-medium">{errors.endAt}</p>}
+            {errors.endAt && <p className="text-xs text-red-400">{errors.endAt}</p>}
           </div>
         </div>
 
@@ -185,32 +184,32 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
         </div>
 
         {/* Members Name Selection (Down Arrow Dropdown) */}
-        <div className="flex flex-col gap-1.5 relative">
-          <label className="text-sm font-medium text-slate-700">Select Team Members</label>
+        <div className="flex flex-col gap-1 relative">
+          <label className="text-sm font-medium text-slate-300">Select Team Members</label>
           
           <button
             type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-left flex items-center justify-between transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+            className="w-full bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-left flex items-center justify-between text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
           >
             <div className="flex items-center gap-2 overflow-hidden">
-              <Users className="w-4 h-4 text-slate-400 shrink-0" />
+              <Users className="w-4 h-4 text-cyan-400 shrink-0" />
               {selectedMemberIds.length > 0 ? (
-                <span className="text-slate-800 font-medium truncate">
+                <span className="text-white font-medium truncate">
                   {selectedMemberIds
                     .map((id) => allMembers.find((m) => m.id === id)?.name)
                     .filter(Boolean)
                     .join(', ')}
                 </span>
               ) : (
-                <span className="text-slate-400">Click to choose team members...</span>
+                <span className="text-slate-500">Click to choose team members...</span>
               )}
             </div>
-            <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-50 p-2 space-y-1 max-h-56 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 p-2 space-y-1 max-h-56 overflow-y-auto">
               {allMembers.length > 0 ? (
                 allMembers.map((member) => {
                   const isSelected = selectedMemberIds.includes(member.id)
@@ -219,17 +218,17 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
                       key={member.id}
                       type="button"
                       onClick={() => toggleMember(member.id)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors text-left ${
                         isSelected
-                          ? 'bg-indigo-50 text-indigo-700 font-medium'
-                          : 'text-slate-700 hover:bg-slate-50'
+                          ? 'bg-cyan-500/20 text-cyan-300 font-medium'
+                          : 'text-slate-300 hover:bg-slate-700/60'
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono text-slate-400">#{member.memberNumber}</span>
                         <span>{member.name}</span>
                       </div>
-                      {isSelected && <Check className="w-4 h-4 text-indigo-600 shrink-0" />}
+                      {isSelected && <Check className="w-4 h-4 text-cyan-400 shrink-0" />}
                     </button>
                   )
                 })
@@ -240,20 +239,20 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
           )}
 
           {selectedMemberIds.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-1.5">
+            <div className="flex flex-wrap gap-1.5 mt-2">
               {selectedMemberIds.map((id) => {
                 const member = allMembers.find((m) => m.id === id)
                 if (!member) return null
                 return (
                   <span
                     key={id}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-lg text-xs font-medium"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 rounded-md text-xs font-medium"
                   >
                     #{member.memberNumber} {member.name}
                     <button
                       type="button"
                       onClick={() => toggleMember(id)}
-                      className="hover:text-indigo-900 font-bold ml-0.5"
+                      className="hover:text-white font-bold ml-0.5"
                     >
                       ×
                     </button>
@@ -266,7 +265,7 @@ export function CtfForm({ onBack, editId, initialData }: CtfFormProps) {
       </div>
 
       {globalError && (
-        <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 text-sm text-rose-700">
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400">
           {globalError}
         </div>
       )}

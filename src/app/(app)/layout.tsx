@@ -8,7 +8,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session) redirect('/login')
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-950">
       <Sidebar
         role={session.user.role}
         memberName={session.user.memberName}
@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       />
       <div className="flex-1 flex flex-col min-w-0">
         <MobileNav role={session.user.role} memberName={session.user.memberName} />
-        <main className="flex-1 p-5 md:p-8 max-w-6xl w-full mx-auto">
+        <main className="flex-1 p-4 md:p-6 max-w-7xl w-full">
           {children}
         </main>
       </div>
