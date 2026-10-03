@@ -11,7 +11,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Credentials({
       name: 'credentials',
       credentials: {
-        email: { label: 'Email', type: 'email' },
+        identifier: { label: 'Roll No or Email', type: 'text' },
+        email: { label: 'Email', type: 'text' }, // fallback for backwards compatibility
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
@@ -35,13 +36,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
           }
 
-          const parsed = loginSchema.safeParse(credentials)
+          const rawIdentifier = (credentials?.identifier || credentials?.email || '') as string
+          const parsed = loginSchema.safeParse({
+            identifier: rawIdentifier,
+            password: credentials?.password,
+          })
           if (!parsed.success) {
             return null
           }
 
-          const user = await db.user.findUnique({
-            where: { email: parsed.data.email.toLowerCase().trim() },
+          const cleanIdentifier = parsed.data.identifier.toLowerCase().trim()
+
+          // Check if identifier matches either User.email directly OR Member.email (which stores the roll no email)
+          let user = await db.user.findFirst({
+            where: {
+              OR: [
+                { email: cleanIdentifier },
+                { email: `${cleanIdentifier}@safectf.local` },
+                { member: { email: cleanIdentifier } },
+                { member: { email: `${cleanIdentifier}@safectf.local` } },
+              ],
+            },
             include: { member: true },
           })
 
@@ -89,8 +104,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   pages: {
-    signIn: '/login',
-    error: '/login',
+    signIn: '/imadminlogin',
+    error: '/imadminlogin',
   },
   session: {
     strategy: 'jwt',

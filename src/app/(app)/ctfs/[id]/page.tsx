@@ -16,7 +16,7 @@ export default async function CtfDetailPage({
   params: Promise<{ id: string }>
 }) {
   const session = await auth()
-  if (!session) redirect('/login')
+  if (!session) redirect('/imadminlogin')
 
   const { id } = await params
 

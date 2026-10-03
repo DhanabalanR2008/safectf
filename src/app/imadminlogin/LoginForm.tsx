@@ -5,12 +5,11 @@ import { signIn } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import { Shield, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
 import { Suspense } from 'react'
 
-function LoginForm() {
+function LoginFormContent() {
   const searchParams = useSearchParams()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
@@ -25,13 +24,13 @@ function LoginForm() {
 
     try {
       const result = await signIn('credentials', {
-        email: email.trim(),
+        identifier: identifier.trim(),
         password,
         redirect: false,
       })
 
       if (result?.error) {
-        setError('Invalid email or password. Please try again.')
+        setError('Invalid Roll No or Password. Please try again.')
         setLoading(false)
       } else {
         // Full page navigation to refresh session cookies
@@ -52,22 +51,26 @@ function LoginForm() {
             <Shield className="w-8 h-8 text-cyan-400" />
           </div>
           <h1 className="text-2xl font-bold text-white">SafeCTF</h1>
-          <p className="text-slate-400 mt-1 text-sm">Sign in to your account</p>
+          <p className="text-slate-400 mt-1 text-sm">Sign in with your Roll No and Password</p>
         </div>
 
         {/* Form */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Email address"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@safectf.local"
-              autoComplete="email"
-              required
-              autoFocus
-            />
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-slate-300">Roll No / ID</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="e.g. 25SY001 or 25SY012"
+                  required
+                  autoFocus
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent uppercase placeholder:normal-case font-mono"
+                />
+              </div>
+            </div>
 
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-slate-300">Password</label>
@@ -79,7 +82,7 @@ function LoginForm() {
                   placeholder="Your password"
                   autoComplete="current-password"
                   required
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 pr-10 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 pr-10 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent font-mono"
                 />
                 <button
                   type="button"
@@ -111,10 +114,10 @@ function LoginForm() {
   )
 }
 
-export default function LoginPage() {
+export default function LoginForm() {
   return (
     <Suspense>
-      <LoginForm />
+      <LoginFormContent />
     </Suspense>
   )
 }

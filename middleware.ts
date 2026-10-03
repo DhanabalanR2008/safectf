@@ -6,7 +6,7 @@ export function middleware(req: NextRequest) {
 
   // 1. Always allow public and auth routes
   if (
-    pathname === '/login' ||
+    pathname === '/imadminlogin' ||
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/init-db') ||
     pathname.startsWith('/api/test-auth') ||
@@ -23,12 +23,12 @@ export function middleware(req: NextRequest) {
     req.cookies.get('authjs.session-token') ||
     req.cookies.get('__Secure-authjs.session-token')
 
-  // 3. If unauthenticated, redirect to /login
+  // 3. If unauthenticated, redirect to /imadminlogin
   if (!sessionCookie) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const loginUrl = new URL('/login', req.url)
+    const loginUrl = new URL('/imadminlogin', req.url)
     loginUrl.searchParams.set('callbackUrl', pathname)
     return NextResponse.redirect(loginUrl)
   }

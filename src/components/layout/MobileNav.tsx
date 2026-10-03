@@ -19,7 +19,6 @@ export function MobileNav({ role, memberName }: MobileNavProps) {
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/history', label: 'History', icon: History },
     { href: '/timeline', label: 'Timeline', icon: Calendar },
-    { href: '/members', label: 'Members', icon: Users },
     { href: '/ctfs/add', label: 'Add CTF', icon: PlusCircle },
   ]
 
@@ -56,23 +55,10 @@ export function MobileNav({ role, memberName }: MobileNavProps) {
                 </Link>
               )
             })}
-            {role === 'ADMIN' && (
-              <Link
-                href="/admin"
-                prefetch={true}
-                onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
-                  pathname.startsWith('/admin') ? 'bg-purple-500/10 text-purple-400' : 'text-slate-400 hover:bg-slate-800'
-                }`}
-              >
-                <Settings className="w-4 h-4" />
-                Admin Panel
-              </Link>
-            )}
             <div className="mt-auto pt-4 border-t border-slate-800">
               <p className="text-sm font-medium text-slate-300 mb-2">{memberName}</p>
               <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
+                onClick={() => signOut({ callbackUrl: '/imadminlogin' })}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-slate-800"
               >
                 <LogOut className="w-4 h-4" />

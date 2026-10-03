@@ -20,7 +20,7 @@ function getUrgencyText(startAt: Date, endAt: Date, now: Date) {
 
 export default async function DashboardPage() {
   const session = await auth()
-  if (!session) redirect('/login')
+  if (!session) redirect('/imadminlogin')
 
   const now = new Date()
 

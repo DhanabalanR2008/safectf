@@ -28,7 +28,6 @@ export function Sidebar({ role, memberName, memberNumber, email }: SidebarProps)
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/history', label: 'History', icon: History },
     { href: '/timeline', label: 'Timeline', icon: Calendar },
-    { href: '/members', label: 'Members', icon: Users },
     { href: '/ctfs/add', label: 'Add CTF', icon: PlusCircle },
   ]
 
@@ -61,21 +60,6 @@ export function Sidebar({ role, memberName, memberNumber, email }: SidebarProps)
             </Link>
           )
         })}
-
-        {role === 'ADMIN' && (
-          <Link
-            href="/admin"
-            prefetch={true}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              pathname.startsWith('/admin')
-                ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            Admin Panel
-          </Link>
-        )}
       </nav>
 
       <div className="p-4 border-t border-slate-800">
@@ -89,7 +73,7 @@ export function Sidebar({ role, memberName, memberNumber, email }: SidebarProps)
           )}
         </div>
         <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={() => signOut({ callbackUrl: '/imadminlogin' })}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors"
         >
           <LogOut className="w-4 h-4" />

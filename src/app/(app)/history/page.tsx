@@ -9,7 +9,7 @@ import { History as HistoryIcon, Clock, Users, ExternalLink, ArrowRight } from '
 
 export default async function HistoryPage() {
   const session = await auth()
-  if (!session) redirect('/login')
+  if (!session) redirect('/imadminlogin')
 
   const now = new Date()
 

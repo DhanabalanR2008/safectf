@@ -5,7 +5,7 @@ import { TimelineView } from '@/components/timeline/TimelineView'
 
 export default async function TimelinePage() {
   const session = await auth()
-  if (!session) redirect('/login')
+  if (!session) redirect('/imadminlogin')
 
   const ctfs = await db.ctf.findMany({
     orderBy: { startAt: 'asc' },

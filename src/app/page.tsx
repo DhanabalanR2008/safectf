@@ -6,6 +6,6 @@ export default async function Home() {
   if (session) {
     redirect('/dashboard')
   } else {
-    redirect('/login')
+    redirect('/imadminlogin')
   }
 }

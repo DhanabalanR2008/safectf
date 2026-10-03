@@ -7,7 +7,7 @@ import { AttendanceButtons } from '@/components/ctf/AttendanceButtons'
 
 export default async function MembersPage() {
   const session = await auth()
-  if (!session) redirect('/login')
+  if (!session) redirect('/imadminlogin')
 
   const now = new Date()
 

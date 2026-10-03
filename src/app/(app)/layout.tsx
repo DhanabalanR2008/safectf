@@ -5,7 +5,7 @@ import { MobileNav } from '@/components/layout/MobileNav'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
-  if (!session) redirect('/login')
+  if (!session) redirect('/imadminlogin')
 
   return (
     <div className="flex min-h-screen bg-slate-950">
