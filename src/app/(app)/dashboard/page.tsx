@@ -4,16 +4,18 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { differenceInHours, differenceInDays, format } from 'date-fns'
-import { Clock, Users, AlertTriangle, ChevronRight } from 'lucide-react'
+import { format, differenceInMinutes, differenceInHours } from 'date-fns'
+import { Clock, Users, ExternalLink, ChevronRight, ArrowRight, PlusCircle } from 'lucide-react'
 
-function getUrgencyLabel(startAt: Date): string | null {
-  const hours = differenceInHours(startAt, new Date())
-  if (hours <= 1 && hours > 0) return 'Starts in less than 1 hour'
-  if (hours <= 24 && hours > 0) return 'Starts tomorrow'
-  if (hours <= 72 && hours > 0) return 'Starts in 3 days'
-  if (hours <= 168 && hours > 0) return 'Starts in 7 days'
-  return null
+function getUrgencyText(startAt: Date, endAt: Date, now: Date) {
+  if (now >= startAt && now <= endAt) {
+    return 'Live Now'
+  }
+  const mins = differenceInMinutes(startAt, now)
+  if (mins <= 60) return `Starts in ${mins}m`
+  const hours = differenceInHours(startAt, now)
+  if (hours <= 24) return `Starts in ${hours}h`
+  return `Starts ${format(startAt, 'MMM d, h:mm a')}`
 }
 
 export default async function DashboardPage() {
@@ -22,12 +24,16 @@ export default async function DashboardPage() {
 
   const now = new Date()
 
-  const ctfs = await db.ctf.findMany({
-    where: { startAt: { gte: now } },
+  // Only upcoming or currently live CTFs (endAt >= now)
+  // Closed / finished CTFs will appear in the History panel
+  const activeCtfs = await db.ctf.findMany({
+    where: {
+      endAt: { gte: now },
+    },
     orderBy: { startAt: 'asc' },
     include: {
       attendance: {
-        include: { member: { select: { name: true, memberNumber: true } } },
+        include: { member: { select: { id: true, name: true, memberNumber: true } } },
       },
       createdBy: {
         include: { member: { select: { name: true } } },
@@ -35,130 +41,144 @@ export default async function DashboardPage() {
     },
   })
 
-  const nextCtf = ctfs[0] ?? null
-  const upcomingCtfs = ctfs.slice(0, 6)
-
-  const needsAttention = ctfs.filter((ctf) => {
-    const label = getUrgencyLabel(ctf.startAt)
-    if (!label) return false
-    const noResponseCount = ctf.attendance.filter(
-      (a) => a.status === 'NO_RESPONSE'
-    ).length
-    return noResponseCount > 0
-  })
-
-  function attendingCount(ctf: typeof ctfs[0]) {
-    return ctf.attendance.filter((a) => a.status === 'ATTENDING').length
-  }
+  // The closest CTF
+  const nextCtf = activeCtfs[0] ?? null
+  const otherActiveCtfs = activeCtfs.slice(1)
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Welcome back,{' '}
-          <span className="text-cyan-400">{session.user.memberName ?? session.user.email}</span>
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Next CTF */}
-        <Card>
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-4 h-4 text-cyan-400" />
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">Next CTF</h2>
-          </div>
-          {nextCtf ? (
-            <div>
-              <h3 className="text-xl font-bold text-white mb-2">{nextCtf.name}</h3>
-              <div className="text-sm text-slate-400 space-y-1 mb-4">
-                <p>{format(nextCtf.startAt, 'MMM d, h:mm a')} → {format(nextCtf.endAt, 'MMM d, h:mm a')}</p>
-                {nextCtf.source && (
-                  <p className="text-slate-500">Source: {nextCtf.source}</p>
-                )}
-                <p className="text-cyan-400 font-medium">
-                  {attendingCount(nextCtf)} / 6 attending
-                </p>
-              </div>
-              <Link href={`/ctfs/${nextCtf.id}`}>
-                <Button size="sm" variant="outline">
-                  View CTF <ChevronRight className="w-3 h-3" />
-                </Button>
-              </Link>
-            </div>
-          ) : (
-            <div className="text-slate-500 text-sm">
-              No upcoming CTFs.{' '}
-              <Link href="/ctfs/add" className="text-cyan-400 hover:underline">Add one?</Link>
-            </div>
-          )}
-        </Card>
-
-        {/* Needs Attention */}
-        <Card>
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-4 h-4 text-yellow-400" />
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">Needs Attention</h2>
-          </div>
-          {needsAttention.length > 0 ? (
-            <div className="space-y-3">
-              {needsAttention.map((ctf) => {
-                const noResponse = ctf.attendance.filter((a) => a.status === 'NO_RESPONSE').length
-                return (
-                  <div key={ctf.id} className="border border-yellow-500/20 bg-yellow-500/5 rounded-lg p-3">
-                    <p className="text-sm font-medium text-white">{ctf.name}</p>
-                    <p className="text-xs text-yellow-400 mt-0.5">{getUrgencyLabel(ctf.startAt)}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{noResponse} member{noResponse !== 1 ? 's' : ''} haven't responded</p>
-                    <RemindButton ctfId={ctf.id} />
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <p className="text-slate-500 text-sm">No urgent items. Team is staying on top of things!</p>
-          )}
-        </Card>
-      </div>
-
-      {/* Upcoming CTFs */}
-      <Card>
-        <div className="flex items-center gap-2 mb-4">
-          <Users className="w-4 h-4 text-cyan-400" />
-          <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">Upcoming CTFs</h2>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Active Competitions</h1>
+          <p className="text-slate-500 text-sm mt-0.5">
+            Upcoming and live CTF challenges. Finished competitions are archived in History.
+          </p>
         </div>
-        {upcomingCtfs.length > 0 ? (
-          <div className="space-y-2">
-            {upcomingCtfs.map((ctf) => (
-              <Link
-                key={ctf.id}
-                href={`/ctfs/${ctf.id}`}
-                className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-800 transition-colors group"
-              >
-                <div>
-                  <p className="text-sm font-medium text-slate-200 group-hover:text-white">
-                    {ctf.name}
-                  </p>
-                  <p className="text-xs text-slate-500">{format(ctf.startAt, 'MMM d')}</p>
+        <Link href="/ctfs/add">
+          <Button size="md" className="gap-2">
+            <PlusCircle className="w-4 h-4" />
+            Add CTF
+          </Button>
+        </Link>
+      </div>
+
+      {nextCtf ? (
+        <div className="space-y-6">
+          {/* Main Hero Card for Closest CTF */}
+          <Card className="border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
+                  {getUrgencyText(nextCtf.startAt, nextCtf.endAt, now)}
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-cyan-400 font-medium">
-                    {attendingCount(ctf)}/6
+
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  {nextCtf.name}
+                </h2>
+
+                <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <Clock className="w-4 h-4 text-slate-400" />
+                    {format(nextCtf.startAt, 'MMM d, h:mm a')} – {format(nextCtf.endAt, 'MMM d, h:mm a')}
                   </span>
-                  <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-slate-400" />
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <Users className="w-4 h-4 text-slate-400" />
+                    {nextCtf.attendance.filter((a) => a.status === 'ATTENDING').length} Attending
+                    {nextCtf.teamSize ? ` (Max ${nextCtf.teamSize})` : ''}
+                  </span>
                 </div>
-              </Link>
-            ))}
+
+                {/* Attending Member Chips */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {nextCtf.attendance
+                    .filter((a) => a.status === 'ATTENDING')
+                    .map((att) => (
+                      <span
+                        key={att.id}
+                        className="px-2 py-0.5 bg-white border border-slate-200 text-slate-700 rounded-md text-xs font-medium shadow-2xs"
+                      >
+                        #{att.member.memberNumber} {att.member.name}
+                      </span>
+                    ))}
+                  {nextCtf.attendance.filter((a) => a.status === 'ATTENDING').length === 0 && (
+                    <span className="text-xs text-slate-400 italic">No members confirmed yet</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0">
+                <Link href={`/ctfs/${nextCtf.id}`}>
+                  <Button variant="primary" size="md" className="w-full justify-between gap-3">
+                    View Details
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+                {nextCtf.ctfUrl && (
+                  <a href={nextCtf.ctfUrl} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="md" className="w-full justify-between gap-3">
+                      Event Portal
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                  </a>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          {/* Other upcoming CTFs if any */}
+          {otherActiveCtfs.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Other Upcoming Competitions ({otherActiveCtfs.length})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {otherActiveCtfs.map((ctf) => {
+                  const attending = ctf.attendance.filter((a) => a.status === 'ATTENDING').length
+                  return (
+                    <Card key={ctf.id} className="hover:border-slate-300 transition-all p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 space-y-1">
+                          <h4 className="font-semibold text-slate-900 truncate">{ctf.name}</h4>
+                          <p className="text-xs text-slate-500">
+                            {format(ctf.startAt, 'MMM d, h:mm a')}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-slate-600 pt-1">
+                            <span className="font-medium text-slate-700">{attending} attending</span>
+                            {ctf.teamSize && <span>&middot; Max {ctf.teamSize}</span>}
+                          </div>
+                        </div>
+                        <Link href={`/ctfs/${ctf.id}`}>
+                          <Button variant="ghost" size="sm" className="p-2">
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </Card>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <Card className="text-center py-16 px-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mx-auto mb-4">
+            <Clock className="w-6 h-6" />
           </div>
-        ) : (
-          <p className="text-slate-500 text-sm">No upcoming CTFs scheduled.</p>
-        )}
-      </Card>
+          <h3 className="text-lg font-bold text-slate-900">No Active CTFs</h3>
+          <p className="text-sm text-slate-500 max-w-sm mx-auto mt-1 mb-6">
+            There are no ongoing or scheduled competitions right now. Completed events are stored in History.
+          </p>
+          <Link href="/ctfs/add">
+            <Button size="md" className="gap-2">
+              <PlusCircle className="w-4 h-4" />
+              Schedule a CTF
+            </Button>
+          </Link>
+        </Card>
+      )}
     </div>
   )
-}
-
-// Client component for remind button
-import { RemindButtonClient } from '@/components/dashboard/RemindButton'
-function RemindButton({ ctfId }: { ctfId: string }) {
-  return <RemindButtonClient ctfId={ctfId} />
 }

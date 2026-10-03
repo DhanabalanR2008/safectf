@@ -1,15 +1,15 @@
 type BadgeVariant = 'attending' | 'maybe' | 'not-attending' | 'no-response' | 'admin' | 'member' | 'active' | 'disabled' | 'default'
 
 const variantStyles: Record<BadgeVariant, string> = {
-  attending: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  maybe: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
-  'not-attending': 'bg-red-500/15 text-red-400 border-red-500/30',
-  'no-response': 'bg-slate-700/50 text-slate-400 border-slate-600/30',
-  admin: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-  member: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
-  active: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  disabled: 'bg-slate-700/50 text-slate-500 border-slate-600/30',
-  default: 'bg-slate-700/50 text-slate-400 border-slate-600/30',
+  attending: 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
+  maybe: 'bg-amber-50 text-amber-700 border-amber-200/60',
+  'not-attending': 'bg-rose-50 text-rose-700 border-rose-200/60',
+  'no-response': 'bg-slate-100 text-slate-600 border-slate-200',
+  admin: 'bg-indigo-50 text-indigo-700 border-indigo-200/60',
+  member: 'bg-slate-100 text-slate-700 border-slate-200',
+  active: 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
+  disabled: 'bg-slate-100 text-slate-400 border-slate-200',
+  default: 'bg-slate-100 text-slate-700 border-slate-200',
 }
 
 export function Badge({ variant = 'default', children }: { variant?: BadgeVariant; children: React.ReactNode }) {

@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'SafeCTF',
-  description: 'Private CTF management for cybersecurity teams',
+  description: 'Clean, minimal CTF management for cybersecurity teams',
 }
 
 export default function RootLayout({
@@ -13,7 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-slate-950 text-slate-200 antialiased">{children}</body>
+      <body className="bg-slate-50 text-slate-800 antialiased min-h-screen">{children}</body>
     </html>
   )
 }

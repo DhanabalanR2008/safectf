@@ -33,42 +33,44 @@ export default async function AdminPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-3">
-        <Settings className="w-6 h-6 text-purple-400" />
+        <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+          <Settings className="w-5 h-5" />
+        </div>
         <div>
-          <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
-          <p className="text-slate-400 text-sm mt-0.5">Manage team members and CTF competitions</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Admin Panel</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Manage team accounts and CTF competitions</p>
         </div>
       </div>
 
       {/* Team Members Section */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-purple-400" />
-            <h2 className="text-lg font-semibold text-white">Team Members</h2>
+            <Users className="w-4 h-4 text-slate-500" />
+            <h2 className="text-base font-bold text-slate-900">Team Members</h2>
           </div>
           <Link
             href="/admin/members/new"
             prefetch={true}
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-500/15 text-purple-400 border border-purple-500/30 rounded-lg text-sm hover:bg-purple-500/25 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200/60 rounded-xl text-xs font-semibold hover:bg-indigo-100 transition-colors"
           >
             + Add Member
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-2.5">
           {members.map((member) => (
-            <Card key={member.id} className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center">
-                  <span className="text-xs font-mono text-slate-400">#{member.memberNumber}</span>
+            <Card key={member.id} className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3.5">
+                <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                  <span className="text-xs font-mono font-medium text-slate-500">#{member.memberNumber}</span>
                 </div>
                 <div>
-                  <p className="font-medium text-white">{member.name}</p>
-                  <p className="text-xs text-slate-500">{member.user?.email ?? 'No account linked'}</p>
+                  <p className="font-semibold text-slate-900 text-sm">{member.name}</p>
+                  <p className="text-xs text-slate-400">{member.user?.email ?? 'No account linked'}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 <Badge variant={member.user?.role === 'ADMIN' ? 'admin' : 'member'}>
                   {member.user?.role ?? 'No role'}
                 </Badge>
@@ -78,7 +80,7 @@ export default async function AdminPage() {
                 <Link
                   href={`/admin/members/${member.id}`}
                   prefetch={true}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                 >
                   Edit <ChevronRight className="w-3 h-3" />
                 </Link>
@@ -88,9 +90,9 @@ export default async function AdminPage() {
 
           {members.length === 0 && (
             <Card>
-              <p className="text-slate-400 text-sm text-center py-4">
+              <p className="text-slate-500 text-sm text-center py-4">
                 No members yet.{' '}
-                <Link href="/admin/members/new" prefetch={true} className="text-purple-400 hover:underline">Add the first member.</Link>
+                <Link href="/admin/members/new" prefetch={true} className="text-indigo-600 hover:underline">Add the first member.</Link>
               </p>
             </Card>
           )}
@@ -98,26 +100,25 @@ export default async function AdminPage() {
       </section>
 
       {/* CTFs Section */}
-      <section>
-        <div className="flex items-center gap-2 mb-4">
-          <Flag className="w-4 h-4 text-purple-400" />
-          <h2 className="text-lg font-semibold text-white">All CTFs</h2>
-          <span className="text-xs text-slate-500">({ctfs.length})</span>
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Flag className="w-4 h-4 text-slate-500" />
+          <h2 className="text-base font-bold text-slate-900">All CTFs</h2>
+          <span className="text-xs text-slate-400">({ctfs.length})</span>
         </div>
 
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-2.5">
           {ctfs.map((ctf) => {
             const attending = ctf.attendance.filter((a) => a.status === 'ATTENDING').length
             return (
-              <Card key={ctf.id} className="flex items-center justify-between">
+              <Card key={ctf.id} className="p-4 flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-white">{ctf.name}</p>
+                  <p className="font-semibold text-slate-900 text-sm">{ctf.name}</p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {format(ctf.startAt, 'MMM d, yyyy')} &middot; {attending}/6 attending &middot; Added by {ctf.createdBy.member?.name ?? ctf.createdBy.email}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="default">{ctf.source}</Badge>
                   <AdminCtfActions ctfId={ctf.id} />
                 </div>
               </Card>
@@ -126,7 +127,7 @@ export default async function AdminPage() {
 
           {ctfs.length === 0 && (
             <Card>
-              <p className="text-slate-400 text-sm text-center py-4">No CTFs added yet.</p>
+              <p className="text-slate-500 text-sm text-center py-4">No CTFs added yet.</p>
             </Card>
           )}
         </div>

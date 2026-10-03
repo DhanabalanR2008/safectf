@@ -7,7 +7,7 @@ export const loginSchema = z.object({
 
 export const ctfCreateSchema = z.object({
   name: z.string().min(1, 'Name is required').max(200, 'Name too long'),
-  source: z.enum(['UNSTOP', 'CTFTIME', 'MANUAL']),
+  source: z.enum(['UNSTOP', 'CTFTIME', 'MANUAL']).default('MANUAL'),
   sourceUrl: z
     .union([z.string().url('Invalid URL'), z.literal(''), z.undefined()])
     .transform((v) => (v === '' ? undefined : v)),
@@ -23,6 +23,7 @@ export const ctfCreateSchema = z.object({
     .union([z.number().int().min(1).max(100), z.null(), z.undefined()])
     .transform((v) => (v == null ? undefined : v)),
   description: z.string().max(5000, 'Description too long').optional(),
+  memberIds: z.array(z.string()).optional(),
 }).refine(
   (data) => {
     if (!data.startAt || !data.endAt) return true

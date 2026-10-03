@@ -31,10 +31,10 @@ export function DeleteCtfButton({ ctfId }: { ctfId: string }) {
     <button
       onClick={handleDelete}
       disabled={loading}
-      className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/30 rounded-lg transition-colors disabled:opacity-50"
+      className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
       title="Delete CTF"
     >
-      <Trash2 className="w-4 h-4" />
+      <Trash2 className="w-3.5 h-3.5" />
       {loading ? 'Deleting…' : 'Delete'}
     </button>
   )

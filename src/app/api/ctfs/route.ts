@@ -70,14 +70,15 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Auto-create NO_RESPONSE attendance for all members
+    // Create attendance records
     const members = await db.member.findMany()
+    const chosenIds = new Set(parsed.data.memberIds || [])
     if (members.length > 0) {
       await db.attendance.createMany({
         data: members.map((m) => ({
           ctfId: ctf.id,
           memberId: m.id,
-          status: 'NO_RESPONSE' as const,
+          status: (chosenIds.has(m.id) ? 'ATTENDING' : 'NO_RESPONSE') as 'ATTENDING' | 'NO_RESPONSE',
         })),
         skipDuplicates: true,
       })

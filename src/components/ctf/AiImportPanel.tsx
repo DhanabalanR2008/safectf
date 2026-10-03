@@ -3,12 +3,16 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Sparkles, ArrowLeft, Link as LinkIcon, FileText } from 'lucide-react'
+import { Sparkles, ArrowLeft, Link as LinkIcon, FileText, AlertTriangle } from 'lucide-react'
 
 interface AiImportPanelProps {
   onExtracted: (data: Record<string, unknown>) => void
   onBack: () => void
   initialUrl?: string
+}
+
+function isUnstopShortLink(u: string) {
+  return /unstop\.com\/o\//i.test(u)
 }
 
 export function AiImportPanel({ onExtracted, onBack, initialUrl }: AiImportPanelProps) {
@@ -17,6 +21,7 @@ export function AiImportPanel({ onExtracted, onBack, initialUrl }: AiImportPanel
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const isShortLink = tab === 'url' && isUnstopShortLink(url)
 
   async function handleExtractUrl() {
     if (!url.trim()) {
@@ -136,12 +141,33 @@ export function AiImportPanel({ onExtracted, onBack, initialUrl }: AiImportPanel
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://unstop.com/o/ODx9tyf... or https://unstop.com/hackathons/..."
+              placeholder="https://unstop.com/hackathons/my-ctf-2026-1234567"
               autoFocus
             />
-            <p className="text-xs text-slate-400">
-              Paste any URL from <strong>Unstop</strong>, <strong>CTFtime</strong>, or an official competition site. The system will automatically extract and pre-fill dates, source link, and competition details.
-            </p>
+
+            {isShortLink ? (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <p className="text-sm font-semibold text-amber-300">This is a share link — it won&apos;t auto-fill details</p>
+                </div>
+                <p className="text-xs text-amber-200/80 leading-relaxed">
+                  Unstop share links (<code className="bg-amber-500/10 px-1 rounded">/o/...</code>) don&apos;t contain the event data. To get the full URL:
+                </p>
+                <ol className="text-xs text-amber-200/80 space-y-1 list-decimal list-inside leading-relaxed">
+                  <li>Open this link in your browser — it will take you to the event page</li>
+                  <li>Copy the URL from your browser&apos;s address bar (it will look like <code className="bg-amber-500/10 px-1 rounded">unstop.com/hackathons/event-name-123456</code>)</li>
+                  <li>Paste that URL here instead</li>
+                </ol>
+                <p className="text-xs text-amber-300 font-medium">
+                  Or use the &quot;Paste Description&quot; tab → copy the event details text from Unstop and paste it there.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400">
+                Paste the full <strong>Unstop event page URL</strong> (e.g. <code className="bg-slate-800 px-1 rounded">unstop.com/hackathons/event-name-123456</code>) — not a share link. The system will auto-fill all dates and details.
+              </p>
+            )}
           </div>
         ) : (
           <div>

@@ -116,16 +116,16 @@ export function MemberEditForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4">
         {isNew && (
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-slate-300">Member Number *</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700">Member Slot *</label>
             <select
               value={memberNumber}
               onChange={(e) => setMemberNumber(e.target.value)}
               required
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
             >
               <option value="">Select member slot</option>
               {[1, 2, 3, 4, 5, 6].map((n) => (
@@ -153,11 +153,11 @@ export function MemberEditForm({
           required
         />
 
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-slate-300">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-slate-700">
             {isNew ? 'Password *' : 'New Password'}
             {!isNew && (
-              <span className="text-slate-500 font-normal"> (leave blank to keep current)</span>
+              <span className="text-slate-400 font-normal"> (leave blank to keep current)</span>
             )}
           </label>
           <div className="relative">
@@ -168,43 +168,43 @@ export function MemberEditForm({
               placeholder={isNew ? 'Minimum 8 characters' : 'Enter new password'}
               required={isNew}
               minLength={8}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 pr-11 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 pr-11 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-400 transition-colors p-1 cursor-pointer focus:outline-none"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors p-1 cursor-pointer focus:outline-none"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
               title={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? (
-                <EyeOff className="w-5 h-5 text-slate-400 hover:text-slate-200" />
+                <EyeOff className="w-4 h-4 text-slate-500" />
               ) : (
-                <Eye className="w-5 h-5 text-slate-300 hover:text-cyan-400" />
+                <Eye className="w-4 h-4 text-slate-400 hover:text-indigo-600" />
               )}
             </button>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-slate-300">Role</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700">Role</label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
             >
               <option value="MEMBER">Member</option>
               <option value="ADMIN">Admin</option>
             </select>
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-slate-300">Account Status</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700">Account Status</label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
             >
               <option value="ACTIVE">Active</option>
               <option value="DISABLED">Disabled</option>
@@ -213,21 +213,21 @@ export function MemberEditForm({
         </div>
 
         {!isNew && status === 'DISABLED' && (
-          <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
-            <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
-            <p className="text-xs text-yellow-300">Disabling this account will prevent the member from logging in.</p>
+          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-800">Disabling this account will prevent the member from logging in.</p>
           </div>
         )}
       </div>
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400">
+        <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 text-sm text-rose-700">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-4 py-3 text-sm text-emerald-400">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-700">
           {success}
         </div>
       )}

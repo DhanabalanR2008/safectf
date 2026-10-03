@@ -212,7 +212,110 @@ ${text.slice(0, 8000)}`
   }
 }
 
+// Extract numeric event ID from an Unstop URL slug
+// e.g. https://unstop.com/hackathons/my-ctf-event-1234567 → "1234567"
+// Returns null for short links like /o/AbCd
+function extractUnstopEventId(url: string): string | null {
+  if (/unstop\.com\/o\//i.test(url)) return null
+  const match = url.match(/-(\d{5,})(?:[/?#]|$)/)
+  return match?.[1] ?? null
+}
+
+// Directly call the Unstop public API to get event details
+async function fetchFromUnstopApi(url: string): Promise<ExtractedCtf | null> {
+  const eventId = extractUnstopEventId(url)
+  if (!eventId) return null
+
+  try {
+    const controller = new AbortController()
+    setTimeout(() => controller.abort(), 5000)
+
+    const apiUrl = `https://unstop.com/api/public/competition/${eventId}?preview=undefined`
+    const res = await fetch(apiUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36',
+        Accept: 'application/json',
+        Referer: 'https://unstop.com/',
+      },
+    })
+
+    if (!res.ok) return null
+    const json = await res.json() as { data?: { status?: boolean; competition?: Record<string, unknown> } }
+    const comp = json?.data?.competition
+    if (!comp || !json?.data?.status) return null
+
+    const title = (comp.title as string | null) ?? ''
+    const startRaw = comp.start_date as string | null
+    const endRaw = comp.end_date as string | null
+    const webUrl = (comp.web_url as string | null) || null
+    const publicUrl = (comp.seo_url as string | null) || (comp.public_url as string | null) || null
+    const pageUrl = publicUrl ? `https://unstop.com/${publicUrl}` : url
+    const details = comp.details as string | null
+
+    // Parse ISO dates with IST offset
+    let startDate = ''
+    let startTime = '09:00'
+    let endDate = ''
+    let endTime = '18:00'
+
+    if (startRaw) {
+      const d = new Date(startRaw)
+      startDate = d.toISOString().split('T')[0]
+      const totalMins = d.getUTCHours() * 60 + d.getUTCMinutes() + 330 // +5:30 IST
+      startTime = `${String(Math.floor(totalMins / 60) % 24).padStart(2, '0')}:${String(totalMins % 60).padStart(2, '0')}`
+    }
+    if (endRaw) {
+      const d = new Date(endRaw)
+      endDate = d.toISOString().split('T')[0]
+      const totalMins = d.getUTCHours() * 60 + d.getUTCMinutes() + 330
+      endTime = `${String(Math.floor(totalMins / 60) % 24).padStart(2, '0')}:${String(totalMins % 60).padStart(2, '0')}`
+    }
+    if (!endDate) endDate = startDate
+
+    // Team size from teams array
+    const teams = comp.teams as Array<{ max_size?: number }> | null
+    let teamSize: number | undefined
+    if (Array.isArray(teams) && teams.length > 0 && teams[0]?.max_size) {
+      const s = Number(teams[0].max_size)
+      if (s >= 1 && s <= 100) teamSize = s
+    }
+
+    // Strip HTML from description
+    const description = details
+      ? details.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500)
+      : 'Registered via Unstop.'
+
+    return {
+      name: title,
+      source: 'UNSTOP',
+      sourceUrl: url,
+      ctfUrl: webUrl || pageUrl,
+      startDate,
+      startTime,
+      endDate,
+      endTime,
+      teamSize,
+      description,
+    }
+  } catch (err) {
+    console.warn('Unstop API fetch failed:', err)
+    return null
+  }
+}
+
 export async function extractFromUrl(url: string): Promise<ExtractedCtf> {
+  // For Unstop URLs: use the direct API — fast, accurate, no AI/scraping needed
+  if (url.includes('unstop.com')) {
+    const unstopResult = await fetchFromUnstopApi(url)
+    if (unstopResult && unstopResult.name && !isInvalidTitle(unstopResult.name)) {
+      return unstopResult
+    }
+    // Short link or deleted event — fall back to heuristics
+    return extractHeuristics('', url)
+  }
+
+  // For all other URLs: fetch HTML + run through AI extraction
   try {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 4000)

@@ -17,8 +17,8 @@ export default async function TimelinePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Timeline</h1>
-        <p className="text-slate-400 text-sm mt-1">CTF competition schedule</p>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Timeline</h1>
+        <p className="text-slate-500 text-sm mt-0.5">Chronological competition schedule</p>
       </div>
       <TimelineView ctfs={ctfs} />
     </div>
